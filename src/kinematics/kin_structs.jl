@@ -7,7 +7,7 @@ end
 Base.getindex(x::hdptWrapper,sym::Symbol) = getfield(x,1)[sym]
 # Allows hdptWrapper to function the same as the component array while also not breaking references to it
 
-struct Linkage  
+struct Linkage
     hdpt1_array::hdptWrapper
     hdpt2_array::hdptWrapper
     hdpt1_symbol::Symbol

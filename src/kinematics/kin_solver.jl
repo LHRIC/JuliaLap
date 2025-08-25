@@ -1,6 +1,8 @@
 include("hdpt_parsing.jl")
 include("kin_structs.jl")
 include("kin_params.jl")
+include("hdpt_vec.jl")
+include("residuals.jl")
 using ComponentArrays
 using NonlinearSolve
 using Plots
@@ -8,18 +10,24 @@ using ForwardDiff
 using BenchmarkTools
 using PreallocationTools
 
-function gen_kin_model(file_name::String)
+function gen_kin_models(file_name::String)
     fl_range = "B8:E25"
     rl_range = "B33:E50"
     fl_dict, rl_dict = excel2dict(file_name, fl_range, rl_range)
     fl_array = dict2cvec(fl_dict, "FL")
-    rl_array = dict2cvec(rl_dict, "RL")
-    fl_shock_range = collect(LinRange(-10,10,21))
-    fl_steer_range = collect(LinRange(-10,10,21))
-    # fl_shock_range = 10.0
-    # fl_steer_range = 10.0
-    fl_sol = kin_solve(rl_array,fl_shock_range,fl_steer_range)
-    return fl_sol
+    idk = gen_corner(fl_array)
+    return idk
+end
+
+function gen_corner(c_array)
+    float_hdpts, fixed_hdpts = hdpt_vec(c_array)
+    float_new = DiffCache(float_hdpts)
+    Rvec = residual_vec(float_hdpts, fixed_hdpts)
+    for R in Rvec
+        println(dump(R))
+    end
+    # println(Rvec[1](float_hdpts, fixed_hdpts))
+    return Rvec
 end
 
 function kin_solve(c_array::ComponentArray,shock_range,steer_range)

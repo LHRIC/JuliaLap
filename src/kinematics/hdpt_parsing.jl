@@ -11,7 +11,7 @@ function excel2dict(file_name, fl_range, rl_range)
 end
 
 function dict2cvec(dict, prefix)
-    fl_array = ComponentVector(
+    c_vec = ComponentVector(
     LO = dict[prefix * "LO"],
     LIF = dict[prefix * "LIF"],
     LIA = dict[prefix * "LIA"],
@@ -31,5 +31,5 @@ function dict2cvec(dict, prefix)
     AP = dict[prefix * "AP"],
     BE = dict[prefix * "BE"]
         )
-    return fl_array
+    return c_vec
 end
