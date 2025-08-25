@@ -22,12 +22,8 @@ end
 function gen_corner(c_array)
     float_hdpts, fixed_hdpts = hdpt_vec(c_array)
     float_new = DiffCache(float_hdpts)
-    Rvec = residual_vec(float_hdpts, fixed_hdpts)
-    for R in Rvec
-        println(dump(R))
-    end
-    # println(Rvec[1](float_hdpts, fixed_hdpts))
-    return Rvec
+    Rvec, Cvec = residual_vec(float_hdpts, fixed_hdpts)
+    return Rvec, Cvec
 end
 
 function kin_solve(c_array::ComponentArray,shock_range,steer_range)

@@ -16,13 +16,34 @@ function ground_link(initial_float_hdpts, initial_fixed_hdpts, gidx, fidx)
     return resid_fun
 end
 
-function ground_planar(initial_float_hdpts, initial_fixed_hdpts, gidx, fidx, axis)
+function ground_planar(gidx, fidx, axis)
     resid_fun = (float_hdpts, fixed_hdpts) -> begin
         dot(fixed_hdpts[gidx,:] - float_hdpts[fidx,:], axis)
-    return resid_fun
     end 
+    return resid_fun
 end
 
+function float_set(idx, dim, value)
+    resid_fun = (float_hdpts, fixed_hdpts) -> begin
+        value - float_hdpts[idx, dim]
+    end
+    return resid_fun
+end
+
+function ctrl_ground_link(gidx, fidx)
+    ctrl_fun = (float_hdpts, fixed_hdpts, x) -> begin
+        (x - norm(fixed_hdpts[gidx] - float_hdpts[fidx])) / x
+    end
+    return ctrl_fun
+end
+
+
+function ctrl_float(idx, dim)
+    resid_fun = (float_hdpts, fixed_hdpts, x) -> begin
+        x - float_hdpts[idx, dim]
+    end
+    return resid_fun
+end
 
 
 function residual_vec(float_hdpts, fixed_hdpts)
@@ -47,7 +68,8 @@ function residual_vec(float_hdpts, fixed_hdpts)
     SI = 6  # Shock Inboard
     BE = 7  # ARB Bar End
 
-    Rvec = [ground_link(float_hdpts, fixed_hdpts, LIF, LO),     # Lower Fore
+    Rvec = [
+            ground_link(float_hdpts, fixed_hdpts, LIF, LO),     # Lower Fore
             ground_link(float_hdpts, fixed_hdpts, LIA, LO),     # Lower Aft
             ground_link(float_hdpts, fixed_hdpts, UIF, UO),     # Upper Fore
             ground_link(float_hdpts, fixed_hdpts, UIA, UO),     # Upper Aft
@@ -62,17 +84,17 @@ function residual_vec(float_hdpts, fixed_hdpts)
             ground_link(float_hdpts, fixed_hdpts, BC, BP),      # Bellcrank - Anchor → ARB Pickup
             ground_link(float_hdpts, fixed_hdpts, BC, BP),      # Bellcrank - Anchor → Shock
             float_link(float_hdpts, BP, AP),                    # ARB Droplink
-            ground_link(float_hdpts, fixed_hdpts, BC, BP),      # ARB Arm
+            ground_link(float_hdpts, fixed_hdpts, BC, BP)       # ARB Arm
             ]
     
     bellcrank_axis = cross(float_hdpts[SO,:] - fixed_hdpts[BC,:], float_hdpts[IP,:] - fixed_hdpts[BC,:])
     normalize!(bellcrank_axis)
 
     push!(Rvec,[
-        ground_planar(float_hdpts, fixed_hdpts, BC, IP, bellcrank_axis), # Bellcrank Push/Pull Pickup
-        ground_planar(float_hdpts, fixed_hdpts, BC, SO, bellcrank_axis), # Bellcrank Shock Pickup
-        ground_planar(float_hdpts, fixed_hdpts, BC, BP, bellcrank_axis), # Bellcrank ARB Pickup
-        ground_planar(float_hdpts, fixed_hdpts, BE, AP, [0.0,1.0,0.0])   # ARB Arm
+        ground_planar(BC, IP, bellcrank_axis), # Bellcrank Push/Pull Pickup
+        ground_planar(BC, SO, bellcrank_axis), # Bellcrank Shock Pickup
+        ground_planar(BC, BP, bellcrank_axis), # Bellcrank ARB Pickup
+        ground_planar(BE, AP, [0.0,1.0,0.0])   # ARB Arm
         ]...)
 
     is_pushrod = norm(float_hdpts[LO,:] - float_hdpts[OP,:]) <= norm(float_hdpts[UO,:] - float_hdpts[OP,:])
@@ -90,5 +112,15 @@ function residual_vec(float_hdpts, fixed_hdpts)
         ]...)
     end
 
-    return Rvec
+    push!(Rvec,[
+            float_set(OT, 1, float_hdpts[OT,1]),    # Set Outboard Tie X
+            float_set(OT, 3, float_hdpts[OT,3])     # Set Outboard Tie Z
+        ]...)
+
+    Cvec = [
+            ctrl_ground_link(SI, SO),   # Control Shock Length
+            ctrl_float(OT, 2)           # Control Outboard Tie Y-pos
+            ]
+
+    return Rvec, Cvec
 end
