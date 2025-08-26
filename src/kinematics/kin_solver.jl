@@ -36,43 +36,41 @@ function gen_corner(c_array)
     # initial_jac = zeros(Float64,(27,27))
     # println(size(initial_jac))
     initial_jac = ForwardDiff.jacobian(jacobian_function, R, u0)
-    println(rank(initial_jac))
-    println(cond(initial_jac))
+    # println(rank(initial_jac))
+    # println(cond(initial_jac))
     initial_sparse = sparse(initial_jac)
-    display(initial_sparse)
+    # display(initial_sparse)
     # println(typeof(initial_sparse))
     # println(typeof(initial_jac))
     # sparsity_map = findall(!iszero, initial_jac)
     # sparsity_map = initial_jac .!= 0
     # println(sparsity_map)
     # println(initial_sparse)
-    # f = NonlinearFunction{true}(kin_fun!; jac_prototype=initial_sparse)
-    # f = NonlinearFunction{false}(kin_fun!; jac_prototype=initial_sparse)
-    println(ctrl)
-    println(float_hdpts[4,2])
-    f = NonlinearFunction{true}(kin_fun!)
-    kin_fun!(R, float_hdpts, (fixed_hdpts, Rvec, Cvec, ctrl))
-    println("INITIAL RESIDUAL")
-    println(R)
-
+    
+    # kin_fun!(R, float_hdpts, (fixed_hdpts, Rvec, Cvec, ctrl))
+    # println("INITIAL RESIDUAL")
+    # println(R)
+    
     # println(f)
+    # f = NonlinearFunction{true}(kin_fun!; jac_prototype=initial_sparse)
+    f = NonlinearFunction{true}(kin_fun!)
     kinematic_problem = NonlinearProblem(f, u0, (fixed_hdpts, Rvec, Cvec, ctrl))
-    kinematic_problem = NonlinearProblem(kin_fun!, u0, (fixed_hdpts, Rvec, Cvec, ctrl))
-    # solve(kinematic_problem, abstol=1e-6)
+    # kinematic_problem = NonlinearProblem(kin_fun!, u0, (fixed_hdpts, Rvec, Cvec, ctrl))
     solutions = []
     trace = TraceMinimal(1)
     # trace = TraceWithJacobianConditionNumber(100)
     # trace = TraceAll(100)
     # trace = TraceMinimal(;print_frequency=10000000, store_frequency=1)
 
-
-
-    for i in 1:1000
-        ctrl[1] = ctrl[1] + 0.01
+    for i in 1:1
+        ctrl[1] = initial_shock + rand()*20 - 10
+        ctrl[2] = initial_steer + rand()*20 - 10
         remake(kinematic_problem,u0=u0,p=(fixed_hdpts,Rvec,Cvec,ctrl))
+        # sol = solve(kinematic_problem,NewtonRaphson(),
+        #     abstol=5e-4, show_trace=Val(false), trace_level=trace, store_trace=Val(false), maxiters=5000)
         sol = solve(kinematic_problem,NewtonRaphson(),
-            abstol=5e-4, show_trace=Val(false), trace_level=trace, store_trace=Val(false), maxiters=5000)
-        push!(solutions,sol)
+            abstol=1e-6)
+        # push!(solutions,sol)
     end
     # println(size(u0))
     # R = reshape((zeros(Float64, size(u0))),:,1)
