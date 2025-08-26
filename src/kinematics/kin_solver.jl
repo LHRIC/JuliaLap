@@ -9,6 +9,9 @@ using Plots
 using ForwardDiff
 using BenchmarkTools
 using PreallocationTools
+using LinearAlgebra
+using SparseArrays
+using Sparspak
 
 function gen_kin_models(file_name::String)
     fl_range = "B8:E25"
@@ -21,48 +24,95 @@ end
 
 function gen_corner(c_array)
     float_hdpts, fixed_hdpts = hdpt_vec(c_array)
-    float_new = DiffCache(float_hdpts)
+    u0 = float_hdpts
+    # u0_cache = DiffCache(float_hdpts)
     Rvec, Cvec = residual_vec(float_hdpts, fixed_hdpts)
-    return Rvec, Cvec
-end
+    p = (Rvec, Cvec)
+    initial_shock = norm(float_hdpts[7,:] - fixed_hdpts[6,:])
+    initial_steer = float_hdpts[4,2]
+    ctrl = [initial_shock, initial_steer]
+    R = (zeros(Float64, size(u0)))
+    jacobian_function = (R,x) -> kin_fun!(R,x,(fixed_hdpts, Rvec, Cvec, ctrl))
+    # initial_jac = zeros(Float64,(27,27))
+    # println(size(initial_jac))
+    initial_jac = ForwardDiff.jacobian(jacobian_function, R, u0)
+    println(rank(initial_jac))
+    println(cond(initial_jac))
+    initial_sparse = sparse(initial_jac)
+    display(initial_sparse)
+    # println(typeof(initial_sparse))
+    # println(typeof(initial_jac))
+    # sparsity_map = findall(!iszero, initial_jac)
+    # sparsity_map = initial_jac .!= 0
+    # println(sparsity_map)
+    # println(initial_sparse)
+    # f = NonlinearFunction{true}(kin_fun!; jac_prototype=initial_sparse)
+    # f = NonlinearFunction{false}(kin_fun!; jac_prototype=initial_sparse)
+    println(ctrl)
+    println(float_hdpts[4,2])
+    f = NonlinearFunction{true}(kin_fun!)
+    kin_fun!(R, float_hdpts, (fixed_hdpts, Rvec, Cvec, ctrl))
+    println("INITIAL RESIDUAL")
+    println(R)
 
-function kin_solve(c_array::ComponentArray,shock_range,steer_range)
-    parameters::kinParameters = kin_params(c_array)
+    # println(f)
+    kinematic_problem = NonlinearProblem(f, u0, (fixed_hdpts, Rvec, Cvec, ctrl))
+    kinematic_problem = NonlinearProblem(kin_fun!, u0, (fixed_hdpts, Rvec, Cvec, ctrl))
+    # solve(kinematic_problem, abstol=1e-6)
+    solutions = []
+    trace = TraceMinimal(1)
+    # trace = TraceWithJacobianConditionNumber(100)
+    # trace = TraceAll(100)
+    # trace = TraceMinimal(;print_frequency=10000000, store_frequency=1)
 
-    initial_shock = parameters.shock_ctrl.length
-    initial_steer = parameters.hdpts.float_hdpts[:IT][2]
-    
-    shock_space = shock_range .+ initial_shock
-    steer_space = steer_range .+ initial_steer
-    parameters.hdpts.float_hdpts.cvec = DiffCache(parameters.hdpts.float_hdpts.cvec)
-    kinematic_problem = NonlinearProblem(kin_fun!, parameters.hdpts.float_hdpts.cvec, parameters)
-    
-    solution_array = [kin_remake!(shock,steer,kinematic_problem,parameters)
-    for shock in shock_space, steer in steer_space]
-    return solution_array
-end
 
-function kin_remake!(shock, steer, kinematic_problem, parameters)
-    parameters.shock_ctrl.length = shock
-    parameters.steer_ctrl.val = steer
-    remake(kinematic_problem, p=parameters)
-    sol = solve(kinematic_problem, abstol=1e-6)
-    # sol = solve(kinematic_problem,abstol=1e-6, NewtonRaphson(autodiff = AutoFiniteDiff()))
 
-    return sol.retcode
-end
-
-function kin_fun!(R, x, p::kinParameters)
-    # if typeof(p.hdpts.float_hdpts.cvec) === typeof(x)
-    p.hdpts.float_hdpts.cvec .= x
-        # By modifying the float hardpoints in place we avoid slow allocations
-    # else
-        # p.hdpts.float_hdpts.cvec = x 
-        #= On the first iteration, it will replace the float hardpoints 
-        wrapper with the type specified by NonLinearSolve.jl =#
-    # end
-    for i in eachindex(p.residual_vector)
-        R[i] = residual(p.residual_vector[i])
+    for i in 1:1000
+        ctrl[1] = ctrl[1] + 0.01
+        remake(kinematic_problem,u0=u0,p=(fixed_hdpts,Rvec,Cvec,ctrl))
+        sol = solve(kinematic_problem,NewtonRaphson(),
+            abstol=5e-4, show_trace=Val(false), trace_level=trace, store_trace=Val(false), maxiters=5000)
+        push!(solutions,sol)
     end
-        return nothing
+    # println(size(u0))
+    # R = reshape((zeros(Float64, size(u0))),:,1)
+
+    # sol = kin_fun!(R, u0, (fixed_hdpts, Rvec, Cvec, ctrl))
+    # sol = solutions[1]
+    # residuals = [h.fnorm for h in sol.trace.history]
+    # print(residuals)
+    # p = plot(1:length(residuals), residuals, xscale=:log10, yscale=:log10)
+    # p = plot(1:20, residuals[1:20], xscale=:log10, yscale=:log10)
+
+    # display(p)
+    for sol in solutions
+        # println(sol.retcode)
+    end
+    return solutions
 end
+
+function kin_fun!(R, float_hdpts, (fixed_hdpts, Rvec, Cvec, ctrl))
+    for i in eachindex(Rvec)
+        residual_fun = Rvec[i]
+        R[i] = residual_fun(float_hdpts, fixed_hdpts)
+    end
+    for i in eachindex(Cvec)
+        R[i+length(Rvec)] = Cvec[i](float_hdpts, fixed_hdpts, ctrl[i])
+    end
+    return
+end
+
+function kin_fun(float_hdpts, (fixed_hdpts, Rvec, Cvec, ctrl))
+    R = []
+    for i in eachindex(Rvec)
+        residual_fun = Rvec[i]
+        push!(R,residual_fun(float_hdpts, fixed_hdpts))
+    end
+    for i in eachindex(Cvec)
+        push!(R,Cvec[i](float_hdpts, fixed_hdpts, ctrl[i]))
+    end
+    return R
+end
+
+
+

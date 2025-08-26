@@ -3,7 +3,10 @@ using LinearAlgebra
 function float_link(initial_float_hdpts, idx1, idx2)
     initial_length = norm(initial_float_hdpts[idx1,:] - initial_float_hdpts[idx2,:])
     resid_fun = (float_hdpts, fixed_hdpts) -> begin
-        (initial_length - norm(float_hdpts[idx1,:] - float_hdpts[idx2,:])) / initial_length
+        p1 = @view float_hdpts[idx1,:]
+        p2 = @view float_hdpts[idx2,:]
+        # (initial_length - norm(float_hdpts[idx1,:] - float_hdpts[idx2,:])) / initial_length
+        (initial_length - norm(p1 - p2)) / initial_length
     end
     return resid_fun
 end
@@ -11,28 +14,35 @@ end
 function ground_link(initial_float_hdpts, initial_fixed_hdpts, gidx, fidx)
     initial_length = norm(initial_fixed_hdpts[gidx,:] - initial_float_hdpts[fidx,:])
     resid_fun = (float_hdpts, fixed_hdpts) -> begin
-        (initial_length - norm(fixed_hdpts[gidx] - float_hdpts[fidx])) / initial_length
+        p1 = @view fixed_hdpts[gidx,:]
+        p2 = @view float_hdpts[fidx,:]
+        (initial_length - norm(p1 - p2)) / initial_length
     end
     return resid_fun
 end
 
 function ground_planar(gidx, fidx, axis)
     resid_fun = (float_hdpts, fixed_hdpts) -> begin
-        dot(fixed_hdpts[gidx,:] - float_hdpts[fidx,:], axis)
+        p1 = @view fixed_hdpts[gidx,:]
+        p2 = @view float_hdpts[fidx,:]
+        dot(p1 - p2, axis)
     end 
     return resid_fun
 end
 
 function float_set(idx, dim, value)
     resid_fun = (float_hdpts, fixed_hdpts) -> begin
-        value - float_hdpts[idx, dim]
+        p = @view float_hdpts[idx, dim]
+        value .- p
     end
     return resid_fun
 end
 
 function ctrl_ground_link(gidx, fidx)
     ctrl_fun = (float_hdpts, fixed_hdpts, x) -> begin
-        (x - norm(fixed_hdpts[gidx] - float_hdpts[fidx])) / x
+        p1 = @view fixed_hdpts[gidx,:]
+        p2 = @view  float_hdpts[fidx,:]
+        (x - norm(p1 - p2)) / x
     end
     return ctrl_fun
 end
@@ -40,7 +50,8 @@ end
 
 function ctrl_float(idx, dim)
     resid_fun = (float_hdpts, fixed_hdpts, x) -> begin
-        x - float_hdpts[idx, dim]
+        p = @view float_hdpts[idx, dim]
+        x .- p
     end
     return resid_fun
 end
@@ -69,57 +80,57 @@ function residual_vec(float_hdpts, fixed_hdpts)
     BE = 7  # ARB Bar End
 
     Rvec = [
-            ground_link(float_hdpts, fixed_hdpts, LIF, LO),     # Lower Fore
-            ground_link(float_hdpts, fixed_hdpts, LIA, LO),     # Lower Aft
-            ground_link(float_hdpts, fixed_hdpts, UIF, UO),     # Upper Fore
-            ground_link(float_hdpts, fixed_hdpts, UIA, UO),     # Upper Aft
-            float_link(float_hdpts, OT, IT),                    # Tie Rod
-            float_link(float_hdpts, LO, OT),                    # Unsprung - Lower → Tie
-            float_link(float_hdpts, UO, OT),                    # Unsprung - Upper → Tie
-            float_link(float_hdpts, LO, UO),                    # Unsprung - Lower → Upper
-            float_link(float_hdpts, OP, IP),                    # Push/PullRod
-            float_link(float_hdpts, IP, SO),                    # Bellcrank - PRod → Shock
-            float_link(float_hdpts, IP, BP),                    # Bellcrank - PRod → ARB Pickup
-            float_link(float_hdpts, SO, BP),                    # Bellcrank - Shock → ARB Pickup
-            ground_link(float_hdpts, fixed_hdpts, BC, BP),      # Bellcrank - Anchor → ARB Pickup
-            ground_link(float_hdpts, fixed_hdpts, BC, BP),      # Bellcrank - Anchor → Shock
-            float_link(float_hdpts, BP, AP),                    # ARB Droplink
-            ground_link(float_hdpts, fixed_hdpts, BC, BP)       # ARB Arm
+            ground_link(float_hdpts, fixed_hdpts, LIF, LO),     # 1 Lower Fore
+            ground_link(float_hdpts, fixed_hdpts, LIA, LO),     # 2 Lower Aft
+            ground_link(float_hdpts, fixed_hdpts, UIF, UO),     # 3 Upper Fore
+            ground_link(float_hdpts, fixed_hdpts, UIA, UO),     # 4 Upper Aft
+            float_link(float_hdpts, OT, IT),                    # 5 Tie Rod
+            float_link(float_hdpts, LO, OT),                    # 6 Unsprung - Lower → Tie
+            float_link(float_hdpts, UO, OT),                    # 7 Unsprung - Upper → Tie
+            float_link(float_hdpts, LO, UO),                    # 8 Unsprung - Lower → Upper
+            float_link(float_hdpts, OP, IP),                    # 9 Push/PullRod
+            float_link(float_hdpts, IP, SO),                    # 10 Bellcrank - PRod → Shock
+            float_link(float_hdpts, IP, BP),                    # 11 Bellcrank - PRod → ARB Pickup
+            float_link(float_hdpts, SO, BP),                    # 12 Bellcrank - Shock → ARB Pickup
+            ground_link(float_hdpts, fixed_hdpts, BC, BP),      # 13 Bellcrank - Anchor → ARB Pickup
+            ground_link(float_hdpts, fixed_hdpts, BC, SO),      # 14 Bellcrank - Anchor → Shock
+            float_link(float_hdpts, BP, AP),                    # 15 ARB Droplink
+            ground_link(float_hdpts, fixed_hdpts, BE, AP)       # 16 ARB Arm
             ]
     
     bellcrank_axis = cross(float_hdpts[SO,:] - fixed_hdpts[BC,:], float_hdpts[IP,:] - fixed_hdpts[BC,:])
     normalize!(bellcrank_axis)
 
     push!(Rvec,[
-        ground_planar(BC, IP, bellcrank_axis), # Bellcrank Push/Pull Pickup
-        ground_planar(BC, SO, bellcrank_axis), # Bellcrank Shock Pickup
-        ground_planar(BC, BP, bellcrank_axis), # Bellcrank ARB Pickup
-        ground_planar(BE, AP, [0.0,1.0,0.0])   # ARB Arm
+        ground_planar(BC, IP, bellcrank_axis), # 17 Bellcrank Push/Pull Pickup
+        ground_planar(BC, SO, bellcrank_axis), # 18 Bellcrank Shock Pickup
+        ground_planar(BC, BP, bellcrank_axis), # 19 Bellcrank ARB Pickup
+        ground_planar(BE, AP, [0.0,1.0,0.0])   # 20 ARB Arm
         ]...)
 
     is_pushrod = norm(float_hdpts[LO,:] - float_hdpts[OP,:]) <= norm(float_hdpts[UO,:] - float_hdpts[OP,:])
     if is_pushrod # Pushrod apex construction
         push!(Rvec,[
-            float_link(float_hdpts, LO, OP),                # Apex 1
-            ground_link(float_hdpts, fixed_hdpts, LIF, OP), # Apex 2
-            ground_link(float_hdpts, fixed_hdpts, LIA, OP)  # Apex 2
+            float_link(float_hdpts, LO, OP),                # 21 Apex 1
+            ground_link(float_hdpts, fixed_hdpts, LIF, OP), # 22 Apex 2
+            ground_link(float_hdpts, fixed_hdpts, LIA, OP)  # 23 Apex 2
         ]...)
     else # Pullrod apex construction
         push!(Rvec,[
-            float_link(float_hdpts, UO, OP),                # Apex 1
-            ground_link(float_hdpts, fixed_hdpts, UIF, OP), # Apex 2
-            ground_link(float_hdpts, fixed_hdpts, UIA, OP)  # Apex 2
+            float_link(float_hdpts, UO, OP),                # 21 Apex 1
+            ground_link(float_hdpts, fixed_hdpts, UIF, OP), # 22 Apex 2
+            ground_link(float_hdpts, fixed_hdpts, UIA, OP)  # 23 Apex 2
         ]...)
     end
 
     push!(Rvec,[
-            float_set(OT, 1, float_hdpts[OT,1]),    # Set Outboard Tie X
-            float_set(OT, 3, float_hdpts[OT,3])     # Set Outboard Tie Z
+            float_set(IT, 1, float_hdpts[IT,1]),    # 24 Set Outboard Tie X
+            float_set(IT, 3, float_hdpts[IT,3])     # 25 Set Outboard Tie Z
         ]...)
 
     Cvec = [
-            ctrl_ground_link(SI, SO),   # Control Shock Length
-            ctrl_float(OT, 2)           # Control Outboard Tie Y-pos
+            ctrl_ground_link(SI, SO),   # 26 Control Shock Length
+            ctrl_float(IT, 2)           # 27 Control Outboard Tie Y-pos
             ]
 
     return Rvec, Cvec
