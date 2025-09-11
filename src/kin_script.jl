@@ -6,4 +6,4 @@ include("kinematics/kin_solver.jl")
 sol = gen_kin_models("src/parameters/HDPT_Export.xlsx")
 # @time @profview sol = gen_kin_models("src/parameters/HDPT_Export.xlsx")
 
-@benchmark sol = gen_kin_models("src/parameters/HDPT_Export.xlsx")
+# @benchmark sol = gen_kin_models("src/parameters/HDPT_Export.xlsx")

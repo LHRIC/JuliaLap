@@ -11,6 +11,11 @@ function quaternion2matrix(quat)
     return R
 end
 
+function matrix2quaternion(matrix)
+    Qxx = matrix[1,1]
+
+end
+
 function momentum2inertial(R, I_inv, L_inertial)
     return R*I_inv*transpose(R)*L_inertial
 end
@@ -27,8 +32,12 @@ function quat_multiplication(q1, q2)
         ]
 end
 
-function velocity2quaternion_dt(omega, quaternion)
+function velocity2quaternion_dt(omega, quaternion) # Fixed reference frame
     return 0.5*quat_multiplication(SVector(0.0, omega...), quaternion)
+end
+ 
+function quaternion_dt2velocity(quaternion_dt, quaternion) # Fixed reference frame
+    return 2.0*quat_multiplication(quaternion_dt, quaternion)
 end
 
 function quaternion2euler(quat)
