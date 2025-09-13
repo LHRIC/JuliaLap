@@ -5,5 +5,5 @@ fl_range = "B8:E25"
 rl_range = "B33:E50"
 fl_dict, rl_dict = excel2dict(file_name, fl_range, rl_range)
 fl_array = dict2cvec(fl_dict, "FL")
-idk = gen_corner(fl_array)
-@benchmark idk = gen_corner(fl_array)
+fun, ctrl = gen_corner(fl_array)
+@benchmark fun, ctrl = gen_corner(fl_array)

@@ -7,7 +7,6 @@ function unsprung_coords(float_hdpts, contact_patch)
     world_to_unsprung = inv(unsprung_coordinate_sys)
     contact_patch_local_wrld = contact_patch - float_hdpts[LO,:]
     contact_patch_local_uns = world_to_unsprung*contact_patch_local_wrld
-    # println(size(unsprung_coordinate_sys))
 
     function coordinate_transform(float)
         unsprung_coordinates = unsprung_axes(float)
