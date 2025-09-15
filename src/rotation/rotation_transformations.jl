@@ -11,9 +11,19 @@ function quaternion2matrix(quat)
     return R
 end
 
-function matrix2quaternion(matrix)
-    Qxx = matrix[1,1]
-
+function matrix_jac2velocity_jac(T,T_jac)
+    type = eltype(T_jac)
+    R = T[1:3,1:3]
+    R_jac = T_jac[1:3,1:3,:]
+    p_jac = T_jac[1:3,4,:]
+    omega_jac = Array{type}(undef,(3,size(R_jac)[3]))
+    for i = 1:size(R_jac)[3]
+        R_dot = R_jac[:,:,i]
+        omega_tensor = R_dot * inv(R)
+        omega = [-omega_tensor[2,3], omega_tensor[1,3], -omega_tensor[1,2]]
+        omega_jac[:,i] = omega
+    end
+    return vcat(p_jac, omega_jac)
 end
 
 function momentum2inertial(R, I_inv, L_inertial)

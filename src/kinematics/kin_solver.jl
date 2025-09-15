@@ -4,6 +4,7 @@ include("kin_params.jl")
 include("hdpt_vec.jl")
 include("residuals.jl")
 include("unsprung_coord.jl")
+include("../rotation/rotation_transformations.jl")
 using ComponentArrays
 using SciMLBase
 using DiffEqBase
@@ -26,15 +27,14 @@ function gen_kin_models(file_name::String)
     fl_fun, ctrl0 = gen_corner(fl_array)
     ctrl1 = ctrl0
     ctrl2 = [ctrl0[1] + 10, ctrl0[2]]
-    # println(ctrl1)
-    # println(ctrl2)
-    # println(fl_fun(ctrl1))
-    # println(fl_fun(ctrl2))
 
-    pos = fl_fun(ctrl1)
-    jac = FiniteDiff.finite_difference_jacobian(fl_fun,ctrl1,absstep=1e-12)
-    return pos, jac
-    # return pos, jac
+    T = fl_fun(ctrl1)
+    # TODO: Benchmark ForwardDiff and FiniteDiff jacobian calculations against eachother
+    T_jac = ForwardDiff.jacobian(fl_fun,ctrl1)
+    # jac = FiniteDiff.finite_difference_jacobian(fl_fun,ctrl1)
+    T_jac = reshape(T_jac,(size(T)...,2))
+    jac = matrix_jac2velocity_jac(T,T_jac)
+    return T, jac
 end
 
 function gen_corner(c_array)

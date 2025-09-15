@@ -1,18 +1,20 @@
 using LinearAlgebra
+include("../rotation/rotation_transformations.jl")
 
 function unsprung_coords(float_hdpts, contact_patch)
     LO = 1
     unsprung_coordinate_sys = unsprung_axes(float_hdpts)
-    # println(unsprung_coordinate_sys)
     world_to_unsprung = inv(unsprung_coordinate_sys)
     contact_patch_local_wrld = contact_patch - float_hdpts[LO,:]
     contact_patch_local_uns = world_to_unsprung*contact_patch_local_wrld
 
     function coordinate_transform(float)
         unsprung_coordinates = unsprung_axes(float)
+        # world_to_unsprung = inv(unsprung_coordinates)
         contact_patch_local_wrld = unsprung_coordinates * contact_patch_local_uns
         contact_patch_global_wrld = contact_patch_local_wrld + float[LO,:]
-        return contact_patch_global_wrld
+        T = [unsprung_coordinates contact_patch_global_wrld ; [0 0 0] 1]
+        return T
     end
 
     return coordinate_transform
