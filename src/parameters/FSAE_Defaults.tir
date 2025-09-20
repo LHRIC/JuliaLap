@@ -35,7 +35,7 @@ $------------------------------------------------------Operating_Conditions
 !
 ! Never modify NOMPRES, to change the inflation pressure of the tyre modify INFLPRES only.
 !
-INFLPRES                 =    82737.1          $Tyre inflation pressure - Modify this parameter to change inflation pressure
+INFLPRES                 =    82737.1        $Tyre inflation pressure - Modify this parameter to change inflation pressure
 NOMPRES                  =    85000          $Nominal tyre inflation pressure - NEVER MODIFY THIS PARAMETER
 $-------------------------------------------------------------------Inertia
 [INERTIA]
