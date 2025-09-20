@@ -136,10 +136,10 @@ end
 
 function main() 
     #Returns available settings for specified file in an array
-    println(get_settings("DSD_12_LS.csv")) 
+    println(get_settings("DSD_12_HS.csv")) 
 
     #Returns interpolation functions for compression and rebound, and also max compression velocity in data set, explicitly cast to Float64 to be safe
-    comp_func, reb_func, max_vel = get_interpolation("DSD_12_LS.csv", Float64(2)) 
+    comp_func, reb_func, max_vel = get_interpolation("DSD_12_HS.csv", Float64(2)) 
 
     #Plots and displays damper curves given compression and rebound interpolation functions, from 0-max_vel (mm/sec)
     display_curves(comp_func, reb_func, max_vel)
