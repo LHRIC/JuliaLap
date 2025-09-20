@@ -19,22 +19,40 @@ using Sparspak
 using FiniteDiff
 # using SciMLSensitivity
 
-function gen_kin_models(file_name::String)
+function gen_kin_models(file_name::String, steer_range, f_shock_range, r_shock_range)
     fl_range = "B8:E25"
     rl_range = "B33:E50"
     fl_dict, rl_dict = excel2dict(file_name, fl_range, rl_range)
     fl_array = dict2cvec(fl_dict, "FL")
-    fl_fun, ctrl0 = gen_corner(fl_array)
-    ctrl1 = ctrl0
-    ctrl2 = [ctrl0[1] + 10, ctrl0[2]]
+    rl_array = dict2cvec(rl_dict, "RL")
+    fl_fun, fl_ctrl0 = gen_corner(fl_array)
+    rl_fun, rl_ctrl0 = gen_corner(rl_array)
 
-    T = fl_fun(ctrl1)
+    fl_T0 = fl_fun(fl_ctrl0)
+    fl_jac0 = jac_wrapper(fl_fun, fl_ctrl0, fl_T0)
+    fl_T_array = zeros(eltype(fl_T0),size(steer_range)...,size(f_shock_range)...,size(fl_T0)...)
+    fl_jac_array = zeros(eltype(fl_jac0),size(steer_range)...,size(f_shock_range)...,size(fl_jac0)...)git 
+
     # TODO: Benchmark ForwardDiff and FiniteDiff jacobian calculations against eachother
-    T_jac = ForwardDiff.jacobian(fl_fun,ctrl1)
-    # jac = FiniteDiff.finite_difference_jacobian(fl_fun,ctrl1)
+    for i = eachindex(steer_range)
+        for j = eachindex(f_shock_range)
+                ctrl = [fl_ctrl0[1] + f_shock_range[j], fl_ctrl0[2] + steer_range[i]]
+                T = fl_fun(ctrl)
+                jac = jac_wrapper(fl_fun, fl_ctrl0, T)
+                fl_T_array[i,j,:,:] = T
+                fl_jac_array[i,j,:,:] = jac
+        end
+    end
+
+    return fl_T_array, fl_jac_array
+end
+
+function jac_wrapper(fun, ctrl, T)
+    # T_jac = FiniteDiff.finite_difference_jacobian(fun,ctrl)
+    T_jac = ForwardDiff.jacobian(fun, ctrl)
     T_jac = reshape(T_jac,(size(T)...,2))
     jac = matrix_jac2velocity_jac(T,T_jac)
-    return T, jac
+    return jac
 end
 
 function gen_corner(c_array)

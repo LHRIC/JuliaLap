@@ -37,9 +37,6 @@ function unsprung_axes(float_hdpts)
     axis_2 = cross(axis_1, float_hdpts[IT,:] - float_hdpts[LO,:])
     normalize!(axis_2)
     axis_3 = cross(axis_1, axis_2)
-    # println(axis_1)
-    # println(axis_2)
-    # println(axis_3)
     unsprung_coordinate_sys = [axis_1 axis_2 axis_3]
     return unsprung_coordinate_sys
 end

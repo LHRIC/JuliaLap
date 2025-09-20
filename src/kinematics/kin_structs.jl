@@ -28,7 +28,7 @@ struct Revolute
     axis::Vector{Float64}
 end
 
-mutable struct Linear
+mutable struct LinearActuator
     hdpt1_array::hdptWrapper
     hdpt2_array::hdptWrapper
     hdpt1_symbol::Symbol
@@ -58,7 +58,7 @@ function residual(revolute::Revolute)
     return dot(diff_vec, axis)/norm(diff_vec)
 end
 
-function residual(linear::Linear)
+function residual(linear::LinearActuator)
     pos1 = linear.hdpt1_array[linear.hdpt1_symbol]
     pos2 = linear.hdpt2_array[linear.hdpt2_symbol]
     diff = linear.length - norm((pos1 - pos2))
@@ -77,7 +77,7 @@ end
 
 mutable struct kinParameters
     hdpts::kinHdpts
-    residual_vector::Vector{Union{Linkage, Revolute, Linear, Forced}}
-    shock_ctrl::Linear
+    residual_vector::Vector{Union{Linkage, Revolute, LinearActuator, Forced}}
+    shock_ctrl::LinearActuator
     steer_ctrl::Forced
 end

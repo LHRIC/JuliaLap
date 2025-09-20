@@ -35,7 +35,7 @@ function kin_params(c_array)
             hdptWrapper(fixed_hdpts))
             # hdptWrapper(ctrl_hdpts))
 
-        residual_vector = Vector{Union{Linkage, Revolute, Linear, Forced}}([
+        residual_vector = Vector{Union{Linkage, Revolute, LinearActuator, Forced}}([
             Linkage(hdpts.float_hdpts, hdpts.fixed_hdpts, :LO, :LIF),   # Lower Fore A-Arm
             Linkage(hdpts.float_hdpts, hdpts.fixed_hdpts, :LO, :LIA),   # Lower Aft A-Arm
             Linkage(hdpts.float_hdpts, hdpts.fixed_hdpts, :UO, :UIF),   # Upper Fore A-Arm
@@ -90,7 +90,7 @@ function kin_params(c_array)
                 
         initial_shock_length = norm(hdpts.float_hdpts[:SO] - hdpts.fixed_hdpts[:SI])
                 
-        shock_ctrl = Linear(hdpts.float_hdpts, hdpts.fixed_hdpts, :SO, :SI, initial_shock_length)
+        shock_ctrl = LinearActuator(hdpts.float_hdpts, hdpts.fixed_hdpts, :SO, :SI, initial_shock_length)
         push!(residual_vector,[
             shock_ctrl
         ]...)
