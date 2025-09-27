@@ -2,7 +2,7 @@ include("tires/mf_62.jl")
 include("tires/parse_tire.jl")
 using Plots
 
-model = MF62.MF62Model(parse_tir("src/parameters/FSAE_Defaults.tir"))
+model = parse_tir("src/parameters/FSAE_Defaults.tir")
 kappa = -0.5:0.001:0.5
 gamma = -pi/4:pi/8:pi/4
 

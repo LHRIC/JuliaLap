@@ -1,29 +1,16 @@
 
 module MF62
-
-export MF62Model
-
 # Magic Formula 6.2 Tire Model (Pacejka, Tire and Vehicle Dynamics, 3rd edition, Ch. 4.3.2)
-
-mutable struct MF62Model
-    params::Dict{String,Any}
-    fz0::Float64 
-    stiffness_tracker::Vector{Vector{Float64}}
-end
-
-function MF62Model(params::Dict{String,Any})
-    return MF62Model(params, params["FNOMIN"], Vector{Vector{Float64}}())
-end
 
 # Compute longitudinal force (pure slip, α = 0)
 # Neglecting turn slip, and assuming small camber values (Lamba=1)
 # 1"s represent un-used user correction coefficents and un-implemented tire pressure sensitivity
 
-function fx(model::MF62Model, fz::Float64, kappa::Float64, gamma::Float64)
+function fx(params::Dict{String,Any}, fz, kappa, gamma)
 
        # initialize variables from parse tire dictionary 
        #old 
-       p = model.params
+       p = params
        pcx1 = p["PCX1"]
        pdx1 = p["PDX1"]
        pdx2 = p["PDX2"]
@@ -59,10 +46,12 @@ function fx(model::MF62Model, fz::Float64, kappa::Float64, gamma::Float64)
        lvx = p["LVX"]                      # Vertical shift
        friction_scaling_x = p["friction_scaling_x"]
 
+       fz0 = p["FNOMIN"]
+
        # TODO: make it instead kappa being input, Vsx and Vcx as input 
        # either input kappa or the two velocities 
     
-       fz0p = lfz0 * model.fz0            # (4.E1)
+       fz0p = lfz0 * fz0            # (4.E1)
 
        dfz = (fz - fz0p) / fz0p           # (4.E2a)
        dpi = (p_i - p_io) / p_io          # (4.E2b)
@@ -93,10 +82,10 @@ end
 
 # Compute lateral force (pure slip, κ = 0)
 
-function fy(model::MF62Model, fz::Float64, alpha::Float64, gamma::Float64)
+function fy(params::Dict{String,Any}, fz, alpha, gamma)
 
        # old 
-       p = model.params
+       p = params
        pcy1 = p["PCY1"]
        pdy1 = p["PDY1"]
        pdy2 = p["PDY2"]
@@ -142,7 +131,9 @@ function fy(model::MF62Model, fz::Float64, alpha::Float64, gamma::Float64)
        lkyg = p["LKYC"]
        friction_scaling_y = p["friction_scaling_y"]
 
-       fz0p = lfz0 * model.fz0            # (4.E1)
+       fz0 = p["FNOMIN"]
+
+       fz0p = lfz0 * fz0            # (4.E1)
 
        dfz = (fz - fz0p) / fz0p           # (4.E2a)
        dpi = (p_i - p_io) / p_io          # (4.E2b)
@@ -157,19 +148,20 @@ function fy(model::MF62Model, fz::Float64, alpha::Float64, gamma::Float64)
        # alpha_str needs velocity, have to implement for the other method, assume it is 1 for now 
        alpha_str = tan(alpha)
        zeta = 1                       # (i = 0, 1, ..., 8)
-       k_ya = pky1*fz0p*(1+ppy1*dpi)*(1-pky3*abs(gam_str))*sin(pky4*atan((fz/fz0p)/((pky2+(pky5*(gam_str^2)))*(1+ppy2*dpi))))*zeta*lky            # (4.E25) TODO: come back for the if statement of gamma = 0 
-       k_yg0 = fz*(pky6 + pky7*dfz)*(1 + ppy5*dpi)*lky          # (4.E30)
-       s_vyg = fz*(pvy3+pvy4*dfz)*gam_str*lky*lmuy_p*zeta  # (4.E28)
+       k_ya = pky1*fz0p*(1+(ppy1*dpi))*(1-(pky3*abs(gam_str)))*sin(pky4*atan((fz/fz0p)/((pky2+(pky5*(gam_str^2)))*(1+(ppy2*dpi)))))*zeta*lky            # (4.E25)
+       k_yg0 = fz*(pky6 + (pky7*dfz))*(1 + (ppy5*dpi))*lkyg          # (4.E30)
+       s_vyg = fz*(pvy3+(pvy4*dfz))*gam_str*lkyg*lmuy_p*zeta  # (4.E28)
        epsilon_K = 0                      # Assume for now there is no error in kappa 
        epsilon_y = 0                      # Assume for now there is no error in y 
-       s_hy = (phy1 + (phy2*dfz))*lhy + ((k_yg0*gam_str - s_vyg)/(k_ya + epsilon_K))*zeta + zeta - 1 # (4.E27)
+       s_hy = (phy1 + (phy2*dfz))*lhy + (((k_yg0*gam_str) - s_vyg)/(k_ya + epsilon_K))*zeta + zeta - 1 # (4.E27)
        alpha_y = alpha_str + s_hy                              # (4.E20)
-       muy = (pdy1 + pdy2*dfz)*(1 + ppy3*dpi + ppy4*dpi^2)*(1 - pdy3*gam_str^2)*lmuy_str            # (4.E23)
+       muy = (pdy1 + (pdy2*dfz))*(1 + (ppy3*dpi) + (ppy4*(dpi^2)))*(1 - (pdy3*(gam_str^2)))*lmuy_str            # (4.E23)
        d_y = muy*fz*zeta                                      # (4.E22)
        c_y = pcy1*lcy                                          # (4.E21)
-       @assert c_y > 0, "c_y is less than 0"
+       @assert c_y > 0 "c_y is less than 0"
        b_y = k_ya/(c_y*d_y + epsilon_y)                        # (4.E26)
-       e_y = (pey1 + pey2*dfz)*(1+pey5*gam_str^2 - (pey3 + pey4*gam_str)*sign(alpha_y))*ley
+       e_y = (pey1 + pey2*dfz)*(1+pey5*(gam_str^2) - (pey3 + pey4*gam_str)*sign(alpha_y))*ley     # (4.E24)
+       @assert e_y <= 1 "e_y is greater than 1"
        s_vy = fz*(pvy1 + pvy2*dfz)*lvy*lmuy_p*zeta + s_vyg
        fy0 = d_y*sin(c_y*atan(b_y*alpha_y - e_y*(b_y*alpha_y - atan(b_y*alpha_y)))) + s_vy
 
