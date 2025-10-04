@@ -7,23 +7,34 @@ kappa = -0.5:0.001:0.5
 gamma = -pi/4:pi/8:pi/4
 
 group = []
-for i in gamma
-    local fx = []
-    for j in kappa
-        push!(fx, MF62.fx(model, 400.0, j, i))
+
+for i in gamma 
+    local at = []
+    for j in kappa 
+        push!(at, MF62.at(model, 400.0, j, i))
     end
-    push!(group, fx)
+    push!(group, at)
 end
 
 display(plot(kappa, group, label=["-pi/4" "-pi/8" 0 "pi/8" "pi/4"]))
 
-group = []
-for i in gamma
-    local fy = []
-    for j in kappa
-        push!(fy, MF62.fy(model, 400.0, j, i))
-    end
-    push!(group, fy)
-end
+# for i in gamma
+#     local fx = []
+#     for j in kappa
+#         push!(fx, MF62.fx(model, 400.0, j, i))
+#     end
+#     push!(group, fx)
+# end
 
-display(plot(kappa, group, label=["-pi/4" "-pi/8" 0 "pi/8" "pi/4"]))
+# display(plot(kappa, group, label=["-pi/4" "-pi/8" 0 "pi/8" "pi/4"]))
+
+# group = []
+# for i in gamma
+#     local fy = []
+#     for j in kappa
+#         push!(fy, MF62.fy(model, 400.0, j, i))
+#     end
+#     push!(group, fy)
+# end
+
+# display(plot(kappa, group, label=["-pi/4" "-pi/8" 0 "pi/8" "pi/4"]))

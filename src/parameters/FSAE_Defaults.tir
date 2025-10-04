@@ -258,6 +258,7 @@ QBZ2                     =    0              $Variation of slope Bpt with load
 QBZ3                     =    0              $Variation of slope Bpt with load squared
 QBZ4                     =    0              $Variation of slope Bpt with camber
 QBZ5                     =    0              $Variation of slope Bpt with absolute camber
+QBZ6                     =    0 
 QBZ9                     =    10             $Factor for scaling factors of slope factor Br of Mzr
 QBZ10                    =    0              $Factor for dimensionless cornering stiffness of Br of Mzr
 QCZ1                     =    1.1            $Shape factor Cpt for pneumatic trail
