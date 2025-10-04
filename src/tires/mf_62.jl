@@ -298,7 +298,7 @@ function at(params::Dict{String,Any}, fz, alpha, gamma)
 end
 
 # longitudinal force (combined slip)
-function fx(params::Dict{String,Any}, fz, alpha, gamma, kappa)
+function fx(params::Dict{String,Any}, fz, alpha, kappa, gamma)
     p = params
 
     rbx1 = p["RBX1"]

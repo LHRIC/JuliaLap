@@ -1,37 +1,33 @@
 include("tires/mf_62.jl")
 include("tires/parse_tire.jl")
 using Plots
+plotlyjs()
 
 model = parse_tir("src/parameters/FSAE_Defaults.tir")
-alpha = -0.5:0.001:0.5
-kappa = -0.5:0.001:0.5
+alpha = -0.5:0.005:0.5
+kappa = -0.5:0.005:0.5
 gamma = -pi/4:pi/8:pi/4
 
-# group = []
-
-data = []  # collect results as tuples (kappa, alpha, fx)
-
-for i in gamma
-    for j in kappa
-        for a in alpha
-            push!(data, (j, a, MF62.fx(model, 400, j, a, i)))
-        end
+data = []
+# Manually change gamma[n] for the different plots
+for k in kappa
+    for a in alpha
+        push!(data, MF62.fx(model, 400, a, k, gamma[5]))
     end
 end
-
+data_mat = reshape(data, (length(alpha), length(kappa)))
 # Extract coordinates for plotting
-kappa_vals = [d[1] for d in data]
-alpha_vals = [d[2] for d in data]
-fx_vals = [d[3] for d in data]
 
-plot3d(kappa_vals, alpha_vals, fx_vals,
-    seriestype = :scatter,
+plot(alpha, kappa, data_mat;
+    seriestype = :surface,
     xlabel = "Kappa (slip ratio)",
     ylabel = "Alpha (slip angle)",
     zlabel = "Fx (Longitudinal Force)",
     title = "Magic Formula 62 Tire Model",
     legend = false,
-    marker = (:circle, 4, 0.6, :blue)
+    markersize = 4,
+    markerstrokewidth = 0,
+    markercolor = :blue,
 )
 
 # for i in gamma 
