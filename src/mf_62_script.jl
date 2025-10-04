@@ -1,37 +1,26 @@
 include("tires/mf_62.jl")
 include("tires/parse_tire.jl")
 using Plots
+plotlyjs()
 
 model = parse_tir("src/parameters/FSAE_Defaults.tir")
-alpha = -0.5:0.001:0.5
-kappa = -0.5:0.001:0.5
+alpha = -deg2rad(20):0.005:deg2rad(20)
+kappa = -2:0.005:2
 gamma = -pi/4:pi/8:pi/4
 
-# group = []
 
-data = []  # collect results as tuples (kappa, alpha, fx)
 
-for i in gamma
-    for j in kappa
-        for a in alpha
-            push!(data, (j, a, MF62.fx(model, 400, j, a, i)))
-        end
-    end
-end
-
-# Extract coordinates for plotting
-kappa_vals = [d[1] for d in data]
-alpha_vals = [d[2] for d in data]
-fx_vals = [d[3] for d in data]
-
-plot3d(kappa_vals, alpha_vals, fx_vals,
-    seriestype = :scatter,
-    xlabel = "Kappa (slip ratio)",
-    ylabel = "Alpha (slip angle)",
-    zlabel = "Fx (Longitudinal Force)",
+data = [MF62.fx(model, 400, a, k, gamma[1]) for k in kappa, a in alpha]
+plot(alpha, kappa, data;
+    seriestype = :surface,
+    xlabel = "Alpha (slip angle)",
+    ylabel = "Kappa (slip ratio)",
+    zlabel = "Fy (Lateral Force)",
     title = "Magic Formula 62 Tire Model",
     legend = false,
-    marker = (:circle, 4, 0.6, :blue)
+    markersize = 4,
+    markerstrokewidth = 0,
+    markercolor = :blue
 )
 
 # for i in gamma 
@@ -41,26 +30,23 @@ plot3d(kappa_vals, alpha_vals, fx_vals,
 #     end
 #     push!(group, at)
 # end
-
-# display(plot(kappa, group, label=["-pi/4" "-pi/8" 0 "pi/8" "pi/4"]))
+# plot(kappa, group, label=["-pi/4" "-pi/8" 0 "pi/8" "pi/4"])
 
 # for i in gamma
-#     local fx = []
+#     local fx0 = []
 #     for j in kappa
-#         push!(fx, MF62.fx(model, 400.0, j, i))
+#         push!(fx0, MF62.fx0(model, 400.0, j, i))
 #     end
-#     push!(group, fx)
+#     push!(group, fx0)
 # end
-
-# display(plot(kappa, group, label=["-pi/4" "-pi/8" 0 "pi/8" "pi/4"]))
+# plot(kappa, group, label=["-pi/4" "-pi/8" 0 "pi/8" "pi/4"])
 
 # group = []
 # for i in gamma
-#     local fy = []
+#     local fy0 = []
 #     for j in kappa
-#         push!(fy, MF62.fy(model, 400.0, j, i))
+#         push!(fy0, MF62.fy0(model, 400.0, j, i))
 #     end
-#     push!(group, fy)
+#     push!(group, fy0)
 # end
-
-# display(plot(kappa, group, label=["-pi/4" "-pi/8" 0 "pi/8" "pi/4"]))
+# plot(kappa, group, label=["-pi/4" "-pi/8" 0 "pi/8" "pi/4"])
