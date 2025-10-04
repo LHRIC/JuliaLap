@@ -64,12 +64,15 @@ function fx0(params::Dict{String,Any}, fz, kappa, gamma)
 
        # longitudinal force (alpha = 0)
        c_x = pcx1*lcx                      # (4.E11)
+       @assert c_x > 1
        mux = (pdx1 + (pdx2*dfz)) * (1+(ppx3*dpi) + (ppx4*(dpi^2))) * (1 - (pdx3*(gamma^2))) * lmux_str   # (4.E13)
        zeta = 1                            # (i = 0, 1, ..., 8) 
        d_x = mux * fz * zeta               # (4.E12)
+       @assert d_x > 1 
        s_hx = (phx1 + (phx2*dfz))*lhx      # (4.E17)
        kappa_x = kappa + s_hx              # (4.E10)
        e_x = (pex1 + (pex2*dfz) + pex3*(dfz^2)) * (1 - (pex4*sign(kappa_x))) * lex          # (4.E14)
+       @assert e_x <= 1
        k_xk = fz * (pkx1 + (pkx2*dfz)) * (exp(pkx3*dfz)) * (1 + (ppx1*dpi) + (ppx2*(dpi^2)))       # (4.E15) note: unknown thing under equation questionable
        epsilon = 0                         # error amount, assume this is perfecto
        b_x = k_xk/((c_x * d_x) + epsilon)  # (4.E16)
