@@ -154,21 +154,22 @@ LMY                      =    1              $Scale factor of rolling resistance
 LMP                      =    1              $Scale factor of Parking Moment
 $--------------------------------------------------------Longitudinal_Force
 [LONGITUDINAL_COEFFICIENTS]
+[LONGITUDINAL_COEFFICIENTS]
 PCX1                     =    1.5            $Shape factor Cfx for longitudinal force
 PDX1                     =    2.5            $Longitudinal friction Mux at Fznom
-PDX2                     =    -0.463185188030574            $Variation of friction Mux with load
-PDX3                     =    2.4451548936536707              $Variation of friction Mux with camber squared
-PEX1                     =    0.33947843135743433              $Longitudinal curvature Efx at Fznom
-PEX2                     =    -0.22022955104819658              $Variation of curvature Efx with load
-PEX3                     =    0.3690470826775904              $Variation of curvature Efx with load squared
-PEX4                     =    6.4677659298354255              $Factor in curvature Efx while driving
-PKX1                     =    99.3027169614879             $Longitudinal slip stiffness Kfx/Fz at Fznom
-PKX2                     =    -39.95382488673418            $Variation of slip stiffness Kfx/Fz with load
-PKX3                     =    191.33835449172784              $Exponent in slip stiffness Kfx/Fz with load
-PHX1                     =    0.8865971274943731              $Horizontal shift Shx at Fznom
-PHX2                     =    270.1350209298448              $Variation of shift Shx with load
-PVX1                     =    4114.5937712553305              $Vertical shift Svx/Fz at Fznom
-PVX2                     =    2.388272275259859              $Variation of shift Svx/Fz with load
+PDX2                     =    -0.1           $Variation of friction Mux with load
+PDX3                     =    5              $Variation of friction Mux with camber squared
+PEX1                     =    0              $Longitudinal curvature Efx at Fznom
+PEX2                     =    0              $Variation of curvature Efx with load
+PEX3                     =    0              $Variation of curvature Efx with load squared
+PEX4                     =    0              $Factor in curvature Efx while driving
+PKX1                     =    50             $Longitudinal slip stiffness Kfx/Fz at Fznom
+PKX2                     =    -80            $Variation of slip stiffness Kfx/Fz with load
+PKX3                     =    0              $Exponent in slip stiffness Kfx/Fz with load
+PHX1                     =    0              $Horizontal shift Shx at Fznom
+PHX2                     =    0              $Variation of shift Shx with load
+PVX1                     =    0              $Vertical shift Svx/Fz at Fznom
+PVX2                     =    0              $Variation of shift Svx/Fz with load
 PPX1                     =    0              $linear influence of inflation pressure on longitudinal slip stiffness
 PPX2                     =    0              $quadratic influence of inflation pressure on longitudinal slip stiffness
 PPX3                     =    0              $linear influence of inflation pressure on peak longitudinal friction
