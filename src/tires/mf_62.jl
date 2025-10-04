@@ -84,7 +84,6 @@ end
 
 # Compute lateral force (pure slip, κ = 0)
 function fy0(params::Dict{String,Any}, fz, alpha, gamma)
-
        # old 
        p = params
        pcy1 = p["PCY1"]
@@ -162,6 +161,7 @@ function fy0(params::Dict{String,Any}, fz, alpha, gamma)
        @assert c_y > 0 "c_y is less than 0"
        b_y = k_ya/(c_y*d_y + epsilon_y)                        # (4.E26)
        e_y = (pey1 + pey2*dfz)*(1+pey5*(gam_str^2) - (pey3 + pey4*gam_str)*sign(alpha_y))*ley     # (4.E24)
+    #    println("e_y = ", e_y)
        @assert e_y <= 1 "e_y is greater than 1"
        s_vy = fz*(pvy1 + pvy2*dfz)*lvy*lmuy_p*zeta + s_vyg          # (4.E29)
        fy0 = d_y*sin(c_y*atan(b_y*alpha_y - e_y*(b_y*alpha_y - atan(b_y*alpha_y)))) + s_vy
@@ -397,10 +397,50 @@ function fy(params::Dict{String,Any}, fz, alpha, kappa, gamma)
     return fy
 end
 
-# normal load 
+# # normal load 
 # function nl(params::Dict{String,Any}, fz, alpha, gamma)
 #     p = params
+#     r0 = p["UNLOADED_RADIUS"]           # Unloaded tire radius 
     
 # end
+
+# over turning 
+function oc(params::Dict{String,Any}, fz, alpha, gamma)
+    p = params
+    r0 = p["UNLOADED_RADIUS"]           # Unloaded tire radius
+    qsx1 = p["QSX1"]
+    qsx2 = p["QSX2"]
+    qsx3 = p["QSX3"]
+    qsx4 = p["QSX4"]
+    qsx5 = p["QSX5"]
+    qsx6 = p["QSX6"]
+    qsx7 = p["QSX7"]
+    qsx8 = p["QSX8"]
+    qsx9 = p["QSX9"]
+    qsx10 = p["QSX10"]
+    qsx11 = p["QSX11"]
+    ppmx1 = p["PPMX1"]
+
+    p_i = p["INFLPRES"]                 # Tire inflation pressure
+    p_io = p["NOMPRES"]                 # Nominal inflation pressure
+    fz0 = p["FNOMIN"]
+
+    dpi = (p_i - p_io) / p_io          # (4.E2b)
+
+    lvmx = p["LVMX"]
+    lmx = p["LMX"]
+
+    fy_0 = fy0(p, fz, alpha, gamma)
+
+    part_1 = qsx1*lvmx - qsx2*gamma*(1+ppmx1*dpi) + qsx3*(fy_0/fz0)
+    part_2_1 = qsx5*(atan(qsx6*(fz/fz0)))^2
+    part_2_2 = qsx7*gamma + qsx8*atan(qsx9*(fy_0/fz0))
+    part_2 = qsx4*cos(part_2_1)*sin(part_2_2)
+    part_3 = qsx10*atan(qsx11*(fz/fz0))*gamma 
+
+    m_x = r0*fz*(part_1 + part_2 + part_3)*lmx
+    # print(m_x)
+    return m_x
+end 
 
 end # module

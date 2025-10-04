@@ -1,27 +1,42 @@
 include("tires/mf_62.jl")
 include("tires/parse_tire.jl")
 using Plots
-plotlyjs()
+# plotlyjs()
 
 model = parse_tir("src/parameters/FSAE_Defaults.tir")
-alpha = -deg2rad(20):0.005:deg2rad(20)
-kappa = -2:0.005:2
-gamma = -pi/4:pi/8:pi/4
+alpha = -deg2rad(4):deg2rad(0.01):deg2rad(2)
+kappa = -1.2:0.001:1.2
+gamma = -deg2rad(3):deg2rad(2):deg2rad(3)
 
+group = []
 
+for g in gamma
+    meow = [MF62.oc(model, 400.0, a, g) for a in alpha]
+    # print(meow)
+    push!(group, meow)
+end
 
-data = [MF62.fx(model, 400, a, k, gamma[1]) for k in kappa, a in alpha]
-plot(alpha, kappa, data;
-    seriestype = :surface,
-    xlabel = "Alpha (slip angle)",
-    ylabel = "Kappa (slip ratio)",
-    zlabel = "Fy (Lateral Force)",
-    title = "Magic Formula 62 Tire Model",
-    legend = false,
-    markersize = 4,
-    markerstrokewidth = 0,
-    markercolor = :blue
+# labels = [string(Int(round(rad2deg(g)))) * "°" for g in gamma]
+
+plot(kappa, group,
+    xlabel = "Kappa (slip ratio)",
+    ylabel = "Fx0 (longitudinal force)",
+    title = "800 psi 16 in tire"
+    # label = labels
 )
+
+# data = [MF62.fx(model, 400, a, k, gamma[1]) for k in kappa, a in alpha]
+# plot(alpha, kappa, data;
+#     seriestype = :surface,
+#     xlabel = "Alpha (slip angle)",
+#     ylabel = "Kappa (slip ratio)",
+#     zlabel = "Fy (Lateral Force)",
+#     title = "Magic Formula 62 Tire Model",
+#     legend = false,
+#     markersize = 4,
+#     markerstrokewidth = 0,
+#     markercolor = :blue
+# )
 
 # for i in gamma 
 #     local at = []
