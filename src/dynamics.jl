@@ -48,4 +48,5 @@ plot(rad2deg.(alpha), group,
     xlabel = "Alpha (slip angle)",
     ylabel = "Fy0 (lateral force)",
     title = "16x7.5-10_R20_8_HP 1500 N", 
+    legendtitle = "Inclination Angle (degrees)", 
     label = labels)
