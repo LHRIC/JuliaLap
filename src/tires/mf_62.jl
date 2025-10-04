@@ -332,7 +332,67 @@ function fx(params::Dict{String,Any}, fz, alpha, kappa, gamma)
     fx = g_xa*fx0(p, fz, kappa, gamma)      # (4.E50)
 
     return fx
-end 
+end
+
+# lateral force (combined slip)
+function fy(params::Dict{String,Any}, fz, alpha, kappa, gamma)
+    p = params
+
+    rby1 = p["RBY1"]
+    rby2 = p["RBY2"]
+    rby3 = p["RBY3"]
+    rby4 = p["RBY4"]
+    rcy1 = p["RCY1"]
+    rey1 = p["REY1"]
+    rey2 = p["REY2"]
+    rhy1 = p["RHY1"]
+    rhy2 = p["RHY2"]
+    rvy1 = p["RVY1"]
+    rvy2 = p["RVY2"]
+    rvy3 = p["RVY3"]
+    rvy4 = p["RVY4"]
+    rvy5 = p["RVY5"]
+    rvy6 = p["RVY6"]
+    pdy1 = p["PDY1"]
+    pdy2 = p["PDY2"]
+    pdy3 = p["PDY3"]
+    ppy3 = p["PPY3"]
+    ppy4 = p["PPY4"]
+
+    lyk = p["LYKA"]
+    lvyk = p["LVYKA"]
+
+    fz0 = p["FNOMIN"]
+    lfz0 = p["LFZO"]                   # Scale factor of nominal (rated) load
+    p_i = p["INFLPRES"]                 # Tire inflation pressure
+    p_io = p["NOMPRES"]                 # Nominal inflation pressure
+    zeta = 1
+    
+    fz0p = lfz0 * fz0            # (4.E1)
+    dfz = (fz - fz0p) / fz0p
+    dpi = (p_i - p_io) / p_io          # (4.E2b)
+
+    alpha_str = tan(alpha)
+    gam_str = sin(gamma)
+    lmuy_str = 1
+
+    mu_y = (pdy1 + (pdy2*dfz))*(1 + (ppy3*dpi) + (ppy4*(dpi^2)))*(1 - (pdy3*(gam_str^2)))*lmuy_str            # (4.E23)
+
+    d_vyk = mu_y*fz*(rvy1+rvy2*dfz+rvy3*gam_str)*cos(atan(rvy4*alpha_str)) * zeta
+    s_vyk = d_vyk*sin(rvy5*atan(rvy6*kappa)) * lvyk
+    s_hyk = rhy1 + rhy2*dfz
+    e_yk = rey1 + rey2*dfz
+    c_yk = rcy1
+    b_yk = (rby1 + rby4*gam_str)*cos(atan(rby2*(alpha_str - rby3))) * lyk
+    @assert b_yk > 0
+    k_s = kappa + s_hyk
+    g_yk0 = cos(c_yk*atan(b_yk*s_hyk - e_yk*(b_yk*s_hyk - atan(b_yk*s_hyk))))
+    g_yk = cos(c_yk*atan(b_yk*k_s - e_yk*(b_yk*k_s - atan(b_yk*k_s))))/g_yk0
+    @assert g_yk > 0
+    fy = g_yk*fy0(params, fz, alpha, gamma) + s_vyk
+
+    return fy
+end
 
 # normal load 
 # function nl(params::Dict{String,Any}, fz, alpha, gamma)
