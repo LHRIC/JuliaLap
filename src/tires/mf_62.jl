@@ -5,7 +5,7 @@ module MF62
 # Compute longitudinal force (pure slip, α = 0)
 # Neglecting turn slip, and assuming small camber values (Lamba=1)
 # 1"s represent un-used user correction coefficents and un-implemented tire pressure sensitivity
-function fx(params::Dict{String,Any}, fz, kappa, gamma)
+function fx0(params::Dict{String,Any}, fz, kappa, gamma)
 
        # initialize variables from parse tire dictionary 
        #old 
@@ -80,7 +80,7 @@ function fx(params::Dict{String,Any}, fz, kappa, gamma)
 end
 
 # Compute lateral force (pure slip, κ = 0)
-function fy(params::Dict{String,Any}, fz, alpha, gamma)
+function fy0(params::Dict{String,Any}, fz, alpha, gamma)
 
        # old 
        p = params
@@ -291,10 +291,53 @@ function at(params::Dict{String,Any}, fz, alpha, gamma)
     e_t = (qez1 + qez2*dfz + qez3*dfz^2)*(1+(qez4 + qez5*gam_str)*(2/pi)*atan(b_t*c_t*a_t))     # (4.E44)
     @assert e_t <= 1
     t_0 = d_t*cos(c_t*atan(b_t*a_t - e_t*(b_t*a_t-atan(b_t*a_t))))*cos(alpha)       # (4.E33) TODO: cos prime -> velocity implementation 
-    f_y0 = fy(p, fz, alpha, gamma)  # function call to fy TODO: want to multiply by friction scalling 
+    f_y0 = fy0(p, fz, alpha, gamma)  # function call to fy TODO: want to multiply by friction scalling 
     m_z0_p = -t_0*f_y0          # (4.E32)
     m_z0 = m_z0_p + m_zr0       # (4.E31)
     return m_z0
 end
+
+# longitudinal force (combined slip)
+function fx(params::Dict{String,Any}, fz, alpha, gamma, kappa)
+    p = params
+
+    rbx1 = p["RBX1"]
+    rbx2 = p["RBX2"]
+    rbx3 = p["RBX3"]
+    rcx1 = p["RCX1"]
+    rex1 = p["REX1"]
+    rex2 = p["REX2"]
+    rhx1 = p["RHX1"]
+
+    lxal = p["LXAL"]
+    fz0 = p["FNOMIN"]
+    lfz0 = p["LFZO"]                   # Scale factor of nominal (rated) load
+    
+    fz0p = lfz0 * fz0            # (4.E1)
+
+    dfz = (fz - fz0p) / fz0p           # (4.E2a)
+
+    alpha_str = tan(alpha)
+    gam_str = sin(gamma)
+
+    s_hxa = rhx1                    # (4.E57)
+    e_xa = rex1 + rex2*dfz          # (4.E56)
+    c_xa = rcx1                     # (4.E55)
+    b_xa = (rbx1 + rbx3*gam_str^2)*cos(atan(rbx2*kappa))*lxal       # (4.E54)
+    @assert b_xa > 0 
+    a_s = alpha_str + s_hxa     # (4.E53)
+    g_xa0 = cos(c_xa*atan(b_xa*s_hxa - e_xa*(b_xa*s_hxa - atan(b_xa*s_hxa))))  # (4.E52)
+    g_xa = cos(c_xa*atan(b_xa*a_s - e_xa*(b_xa*a_s - atan(b_xa*a_s))))/g_xa0    # (4.E51)
+    @assert g_xa > 0 
+    fx = g_xa*fx0(p, fz, kappa, gamma)      # (4.E50)
+
+    return fx
+end 
+
+# normal load 
+# function nl(params::Dict{String,Any}, fz, alpha, gamma)
+#     p = params
+    
+# end
 
 end # module
