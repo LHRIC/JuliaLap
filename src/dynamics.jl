@@ -8,9 +8,9 @@ model = parse_tir("src/parameters/Dynamics.tir")
 # default = parse_tir("src/parameters/FSAE_Defaults.tir")
 # print("default", default)
 
-alpha = -deg2rad(20):deg2rad(1):deg2rad(20)
+alpha = -deg2rad(4):deg2rad(0.01):deg2rad(2)
 kappa = -1.2:0.001:1.2
-gamma = -deg2rad(3):deg2rad(1):deg2rad(3)
+gamma = -deg2rad(3):deg2rad(2):deg2rad(3)
 
 # groupx = []
 
@@ -37,15 +37,15 @@ group = []
 for i in gamma
     local fy = []
     for j in alpha
-        push!(fy, MF62.fy0(model, 800.0, j, i))
+        push!(fy, MF62.fy0(model, 1500.0, j, i))
     end
     push!(group, fy)
 end
 
 labels = reshape([string(round(rad2deg(g)), "°") for g in gamma], 1, :)
 
-plot(alpha, group, 
+plot(rad2deg.(alpha), group, 
     xlabel = "Alpha (slip angle)",
     ylabel = "Fy0 (lateral force)",
-    title = "16x7.5-10_R20_8_HP 800 N", 
+    title = "16x7.5-10_R20_8_HP 1500 N", 
     label = labels)
