@@ -3,23 +3,23 @@ include("tires/parse_tire.jl")
 using Plots
 # plotlyjs()
 
-model = parse_tir("src/parameters/FSAE_Defaults.tir")
-alpha = -deg2rad(4):deg2rad(0.01):deg2rad(2)
+model = parse_tir("src/parameters/Dynamics.tir")
+alpha = -deg2rad(12):deg2rad(0.01):deg2rad(12)
 kappa = -1.2:0.001:1.2
-gamma = -deg2rad(3):deg2rad(2):deg2rad(3)
+gamma = -deg2rad(5):deg2rad(2):deg2rad(5)
 
 group = []
 
+MF62.fy0(model, 400.0, 0, 0)
 for g in gamma
-    meow = [MF62.oc(model, 400.0, a, g) for a in alpha]
-    # print(meow)
+    meow = [MF62.oc(model, 400.0, a, 0, g) for a in alpha]
     push!(group, meow)
 end
 
 # labels = [string(Int(round(rad2deg(g)))) * "°" for g in gamma]
 
-plot(kappa, group,
-    xlabel = "Kappa (slip ratio)",
+plot(alpha, group,
+    xlabel = "Alpha (slip angle)",
     ylabel = "Fx0 (longitudinal force)",
     title = "800 psi 16 in tire"
     # label = labels

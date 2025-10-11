@@ -160,8 +160,8 @@ function fy0(params::Dict{String,Any}, fz, alpha, gamma)
        c_y = pcy1*lcy                                          # (4.E21)
        @assert c_y > 0 "c_y is less than 0"
        b_y = k_ya/(c_y*d_y + epsilon_y)                        # (4.E26)
+    #    pey1 = 0
        e_y = (pey1 + pey2*dfz)*(1+pey5*(gam_str^2) - (pey3 + pey4*gam_str)*sign(alpha_y))*ley     # (4.E24)
-    #    println("e_y = ", e_y)
        @assert e_y <= 1 "e_y is greater than 1"
        s_vy = fz*(pvy1 + pvy2*dfz)*lvy*lmuy_p*zeta + s_vyg          # (4.E29)
        fy0 = d_y*sin(c_y*atan(b_y*alpha_y - e_y*(b_y*alpha_y - atan(b_y*alpha_y)))) + s_vy
@@ -404,8 +404,9 @@ end
     
 # end
 
-# over turning 
-function oc(params::Dict{String,Any}, fz, alpha, gamma)
+# overturning couple
+# currently only gives 0, but it makes sense when looking at the inputs
+function oc(params::Dict{String,Any}, fz, alpha, kappa, gamma)
     p = params
     r0 = p["UNLOADED_RADIUS"]           # Unloaded tire radius
     qsx1 = p["QSX1"]
@@ -430,17 +431,190 @@ function oc(params::Dict{String,Any}, fz, alpha, gamma)
     lvmx = p["LVMX"]
     lmx = p["LMX"]
 
-    fy_0 = fy0(p, fz, alpha, gamma)
+    f_y = fy(p, fz, alpha, kappa, gamma)
 
-    part_1 = qsx1*lvmx - qsx2*gamma*(1+ppmx1*dpi) + qsx3*(fy_0/fz0)
+    part_1 = qsx1*lvmx - qsx2*gamma*(1+ppmx1*dpi) + qsx3*(f_y/fz0)
     part_2_1 = qsx5*(atan(qsx6*(fz/fz0)))^2
-    part_2_2 = qsx7*gamma + qsx8*atan(qsx9*(fy_0/fz0))
+    part_2_2 = qsx7*gamma + qsx8*atan(qsx9*(f_y/fz0))
     part_2 = qsx4*cos(part_2_1)*sin(part_2_2)
-    part_3 = qsx10*atan(qsx11*(fz/fz0))*gamma 
+    part_3 = qsx10*atan(qsx11*(fz/fz0))*gamma
 
     m_x = r0*fz*(part_1 + part_2 + part_3)*lmx
     # print(m_x)
     return m_x
 end 
+
+# Rolling Resistance Moment
+function rrm(params::Dict{String,Any}, fz, vx, alpha, kappa, gamma)
+    p = params
+    qsy1 = p["QSY1"]
+    qsy2 = p["QSY2"]
+    qsy3 = p["QSY3"]
+    qsy4 = p["QSY4"]
+    qsy5 = p["QSY5"]
+    qsy6 = p["QSY6"]
+    qsy7 = p["QSY7"]
+    qsy8 = p["QSY8"]
+    r0 = p["UNLOADED_RADIUS"]           # Unloaded tire radius
+    
+    p_i = p["INFLPRES"]                 # Tire inflation pressure
+    p_io = p["NOMPRES"]                 # Nominal inflation pressure
+    fz0 = p["FNOMIN"]
+    v0 = sqrt(abs(g*r0))                # Derived reference velocity
+
+    lmy = p["LMY"]
+
+    f_x = fx(p, fz, alpha, kappa, gamma)
+    part_1 = qsy1 + qsy2*f_x/fz0 + qsy3*abs(vx/v0) + qsy4 + (vx/v0)^4 + (qsy5 + qsy6*fz/fz0)*gamma^2
+    part_2 = (fz/fz0)^qsy7 * (p_i/p_io)^qsy8
+
+    m_y = fz*r0*part_1*part_2*lmy
+    return m_y
+end
+
+# Aligning Torque (combined slip)
+function rrm(params::Dict{String,Any}, fz, alpha, kappa, gamma)
+    p = params
+    ssz1 = p["SSZ1"]
+    ssz2 = p["SSZ2"]
+    ssz3 = p["SSZ3"]
+    ssz4 = p["SSZ4"]
+    qhz1 = p["QHZ1"]
+    qhz2 = p["QHZ2"]
+    qhz3 = p["QHZ3"]
+    qhz4 = p["QHZ4"]
+    qbz1 = p["QBZ1"]
+    qbz2 = p["QBZ2"]
+    qbz3 = p["QBZ3"]
+    qbz5 = p["QBZ5"]
+    qbz6 = 0 # p["QBZ6"]
+    qbz9 = p["QBZ9"]
+    qbz10 = p["QBZ10"]
+    qcz1 = p["QCZ1"]
+    qdz1 = p["QDZ1"]
+    qdz2 = p["QDZ2"]
+    qdz3 = p["QDZ3"]
+    qdz4 = p["QDZ4"]
+    qdz6 = p["QDZ6"]    # 67
+    qdz7 = p["QDZ7"]    # 67
+    qdz8 = p["QDZ8"]
+    qdz9 = p["QDZ9"]
+    qdz10 = p["QDZ10"]
+    qdz11 = p["QDZ11"]
+    ppz1 = p["PPZ1"]
+    ppz2 = p["PPZ2"]
+    qez1 = p["QEZ1"]
+    qez2 = p["QEZ2"]
+    qez3 = p["QEZ3"]
+    qez4 = p["QEZ4"]
+    qez5 = p["QEZ5"]
+
+    # needed fy variables 
+    pcy1 = p["PCY1"]
+    pdy1 = p["PDY1"]
+    pdy2 = p["PDY2"]
+    pdy3 = p["PDY3"]
+    pky1 = p["PKY1"]
+    pky2 = p["PKY2"]
+    pky3 = p["PKY3"]
+    pky4 = p["PKY4"]
+    pky5 = p["PKY5"]
+    pky6 = p["PKY6"]
+    pky7 = p["PKY7"]
+    phy1 = p["PHY1"]
+    phy2 = p["PHY2"]
+    pvy1 = p["PVY1"]
+    pvy2 = p["PVY2"]
+    pvy3 = p["PVY3"]
+    pvy4 = p["PVY4"]
+    ppy1 = p["PPY1"]
+    ppy2 = p["PPY2"]
+    ppy3 = p["PPY3"]
+    ppy4 = p["PPY4"]
+    ppy5 = p["PPY5"]
+
+    lky = p["LKY"]
+    lmuy = p["LMUY"]
+    r0 = p["UNLOADED_RADIUS"]           # Unloaded tire radius 
+    ltr = p["LTR"]                      # Pneumatic trail
+    lres = p["LRES"]                    # Residual torque
+    lkzc = p["LKZC"]                    # Camber torque stiffness
+    lhy = p["LHY"]                      # Horizontal shift
+    lfz0 = p["LFZO"]                    # Scale factor of nominal (rated) load
+    p_i = p["INFLPRES"]                 # Tire inflation pressure
+    p_io = p["NOMPRES"]                 # Nominal inflation pressure
+    lcy = p["LCY"]                      # Shape factor
+    lkyc = p["LKYC"]                    # Camber force stiffness
+    lvy = p["LVY"]                      # Vertical shift
+    r0 = p["UNLOADED_RADIUS"]           # Unloaded tire radius
+    
+    p_i = p["INFLPRES"]                 # Tire inflation pressure
+    p_io = p["NOMPRES"]                 # Nominal inflation pressure
+    fz0 = p["FNOMIN"]
+
+    ls = p["LS"]
+    lfz0 = p["LFZO"]
+
+    fz0p = lfz0 * fz0            # (4.E1)
+
+    dfz = (fz - fz0p) / fz0p           # (4.E2a)
+    dpi = (p_i - p_io) / p_io          # (4.E2b)
+
+    f_x = fx(p, fz, alpha, kappa, gamma)
+    f_y = fy(p, fz, alpha, kappa, gamma)
+    fz0p = fz0 * lfz0
+
+    # come back for 4.E3
+    gam_str = sin(gamma)               # (4.E4)
+    epsilon_y = 0
+    lmuy_str = lmuy                 # (4.E7) TODO: velocity 
+    zeta = 1
+    k_xk = fz * (pkx1 + (pkx2*dfz)) * (exp(pkx3*dfz)) * (1 + (ppx1*dpi) + (ppx2*(dpi^2)))       # (4.E15) note: unknown thing under equation questionable
+
+    s_hyk = rhy1 + rhy2*dfz
+    e_yk = rey1 + rey2*dfz
+    c_yk = rcy1
+    b_yk = (rby1 + rby4*gam_str)*cos(atan(rby2*(alpha_str - rby3))) * lyk
+    @assert b_yk > 0
+    k_s = kappa + s_hyk
+    g_yk0 = cos(c_yk*atan(b_yk*s_hyk - e_yk*(b_yk*s_hyk - atan(b_yk*s_hyk))))
+    g_yk = cos(c_yk*atan(b_yk*k_s - e_yk*(b_yk*k_s - atan(b_yk*k_s))))/g_yk0
+
+    d_r = fz*r0*((qdz6+qdz7)*lres*zeta + ((qdz8 + qdz9*dfz)*(1 + ppz2*dpi) + (qdz10 + qdz11*dfz)*abs(gam_str))*gam_str*lkzc*zeta)*lmuy_str*cos(alpha) + zeta - 1 # (4.E47)
+    c_r = zeta                      # (4.E46)
+    muy = (pdy1 + (pdy2*dfz))*(1 + (ppy3*dpi) + (ppy4*(dpi^2)))*(1 - (pdy3*(gam_str^2)))*lmuy_str            # (4.E23)
+    d_y = muy*fz*zeta                                      # (4.E22)
+    c_y = pcy1*lcy                                          # (4.E21)
+    @assert c_y > 0 "c_y is less than 0"
+    k_ya = pky1*fz0p*(1+(ppy1*dpi))*(1-(pky3*abs(gam_str)))*sin(pky4*atan((fz/fz0p)/((pky2+(pky5*(gam_str^2)))*(1+(ppy2*dpi)))))*zeta*lky            # (4.E25)
+    b_y = k_ya/(c_y*d_y + epsilon_y)                        # (4.E26)
+    b_r = ((qbz9*lky)/(lmuy_str + qbz10*b_y*c_y))*zeta          # (4.E45)
+    d_t0 = fz*(r0/fz0p)*(qdz1 + qdz2*dfz)*(1-ppz1*dpi)*ltr      # (4.E42) TODO: velocity sign 
+    d_t = d_t0*(1+qdz3*abs(gam_str) + qdz4*gam_str^2)*zeta      # (4.E43)
+    c_t = qcz1                    # (4.E41)   
+    @assert c_t > 0
+    b_t = (qbz1 + qbz2*dfz + qbz3*dfz^2)*(1 + qbz5*abs(gam_str) + qbz6*gam_str^2)*(lky/lmuy_str) # (4.E40)
+    k_ya_p = k_ya + epsilon_K                              # (4.E39)
+    k_yg0 = fz*(pky6 + (pky7*dfz))*(1 + (ppy5*dpi))*lkyc          # (4.E30)
+    s_vyg = fz*(pvy3+(pvy4*dfz))*gam_str*lkyc*lmuy_p*zeta  # (4.E28)
+    s_hy = (phy1 + (phy2*dfz))*lhy + (((k_yg0*gam_str) - s_vyg)/(k_ya + epsilon_K))*zeta + zeta - 1 # (4.E27)
+    s_vy = fz*(pvy1 + pvy2*dfz)*lvy*lmuy_p*zeta + s_vyg          # (4.E29)
+    s_hf = s_hy + s_vy/k_ya_p                              # (4.E38)
+    a_r = alpha_str + s_hf                                 # (4.E37)
+    s_ht = qhz1 + qhz2*dfz + (qhz3 + qhz4*dfz)gam_str      # (4.E35)
+    a_t = alpha_str + s_ht      # (4.E34)
+    e_t = (qez1 + qez2*dfz + qez3*dfz^2)*(1+(qez4 + qez5*gam_str)*(2/pi)*atan(b_t*c_t*a_t))     # (4.E44)
+
+    alpha_req = sqrt(a_r^2 + (k_xk/k_ya_p)^2*kappa^2)*sign(a_r)
+    alpha_teq = sqrt(a_t^2 + (k_xk/k_ya_p)^2*kappa^2)*sign(a_t)
+    s = r0 * (ssz1 + ssz2*(f_y/fz0p) + (ssz3 + ssz4*dfz)*gam_str)*ls
+    m_zr = d_r * cos(c_r*atan(b_r*alpha_req))*cos(alpha) # TODO: check cos_p(alpha)
+    fy_p = g_yk * fy0(p, f_x, alpha, 0)
+    b_alpha_t = b_t*alpha_teq
+    t = d_t*cos(c_t*atan(b_alpha_t - e_t*(b_alpha_t - atan(b_alpha_t)))) * cos(alpha) # TODO: check cos_p(alpha)
+    m_zp = -t * fy_p
+    m_z = m_zp + m_zr + s * f_x
+    return m_z
+end
 
 end # module
