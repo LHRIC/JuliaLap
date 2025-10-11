@@ -170,7 +170,7 @@ function fy0(params::Dict{String,Any}, fz, alpha, gamma)
 end
 
 # Aligning Torque (pure slip slip, kappa = 0)
-function at(params::Dict{String,Any}, fz, alpha, gamma)
+function at0(params::Dict{String,Any}, fz, alpha, gamma)
     p = params
     qhz1 = p["QHZ1"]
     qhz2 = p["QHZ2"]
