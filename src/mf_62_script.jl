@@ -3,16 +3,25 @@ include("tires/parse_tire.jl")
 using Plots
 # plotlyjs()
 
-model = parse_tir("src/parameters/Dynamics.tir")
+model = parse_tir("src/parameters/Dynamics_7_HP.tir")
 alpha = -deg2rad(12):deg2rad(0.01):deg2rad(12)
 kappa = -1.2:0.001:1.2
 gamma = -deg2rad(5):deg2rad(2):deg2rad(5)
 
 group = []
 
-MF62.fy0(model, 400.0, 0, 0)
+# for g in gamma
+#     meow = [MF62.at(model, 800.0, a, 0, g) for a in alpha]
+#     push!(group, meow)
+# end
+
+# for g in gamma
+#     meow = [MF62.rrm(model, 800.0, 10, 0, k, g) for k in kappa]
+#     push!(group, meow)
+# end
+
 for g in gamma
-    meow = [MF62.oc(model, 400.0, a, 0, g) for a in alpha]
+    meow = [MF62.oc(model, 800.0, a, 0, g) for a in alpha]
     push!(group, meow)
 end
 

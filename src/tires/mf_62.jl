@@ -160,7 +160,7 @@ function fy0(params::Dict{String,Any}, fz, alpha, gamma)
        c_y = pcy1*lcy                                          # (4.E21)
        @assert c_y > 0 "c_y is less than 0"
        b_y = k_ya/(c_y*d_y + epsilon_y)                        # (4.E26)
-    #    pey1 = 0
+    #    pey1 = 0 # TODO: fix
        e_y = (pey1 + pey2*dfz)*(1+pey5*(gam_str^2) - (pey3 + pey4*gam_str)*sign(alpha_y))*ley     # (4.E24)
        @assert e_y <= 1 "e_y is greater than 1"
        s_vy = fz*(pvy1 + pvy2*dfz)*lvy*lmuy_p*zeta + s_vyg          # (4.E29)
@@ -460,6 +460,7 @@ function rrm(params::Dict{String,Any}, fz, vx, alpha, kappa, gamma)
     p_i = p["INFLPRES"]                 # Tire inflation pressure
     p_io = p["NOMPRES"]                 # Nominal inflation pressure
     fz0 = p["FNOMIN"]
+    g=-9.81
     v0 = sqrt(abs(g*r0))                # Derived reference velocity
 
     lmy = p["LMY"]
@@ -473,7 +474,7 @@ function rrm(params::Dict{String,Any}, fz, vx, alpha, kappa, gamma)
 end
 
 # Aligning Torque (combined slip)
-function rrm(params::Dict{String,Any}, fz, alpha, kappa, gamma)
+function at(params::Dict{String,Any}, fz, alpha, kappa, gamma)
     p = params
     ssz1 = p["SSZ1"]
     ssz2 = p["SSZ2"]
@@ -533,6 +534,22 @@ function rrm(params::Dict{String,Any}, fz, alpha, kappa, gamma)
     ppy4 = p["PPY4"]
     ppy5 = p["PPY5"]
 
+    rby1 = p["RBY1"]
+    rby2 = p["RBY2"]
+    rby3 = p["RBY3"]
+    rby4 = p["RBY4"]
+    rcy1 = p["RCY1"]
+    rey1 = p["REY1"]
+    rey2 = p["REY2"]
+    rhy1 = p["RHY1"]
+    rhy2 = p["RHY2"]
+
+    pkx1 = p["PKX1"]
+    pkx2 = p["PKX2"]
+    pkx3 = p["PKX3"]
+    ppx1 = p["PPX1"]
+    ppx2 = p["PPX2"]
+
     lky = p["LKY"]
     lmuy = p["LMUY"]
     r0 = p["UNLOADED_RADIUS"]           # Unloaded tire radius 
@@ -554,11 +571,14 @@ function rrm(params::Dict{String,Any}, fz, alpha, kappa, gamma)
 
     ls = p["LS"]
     lfz0 = p["LFZO"]
+    lyk = p["LYKA"]
 
     fz0p = lfz0 * fz0            # (4.E1)
 
     dfz = (fz - fz0p) / fz0p           # (4.E2a)
     dpi = (p_i - p_io) / p_io          # (4.E2b)
+    alpha_str = tan(alpha)
+    A_mu = 10                          # (4.E8)
 
     f_x = fx(p, fz, alpha, kappa, gamma)
     f_y = fy(p, fz, alpha, kappa, gamma)
@@ -567,7 +587,9 @@ function rrm(params::Dict{String,Any}, fz, alpha, kappa, gamma)
     # come back for 4.E3
     gam_str = sin(gamma)               # (4.E4)
     epsilon_y = 0
+    epsilon_K = 0 
     lmuy_str = lmuy                 # (4.E7) TODO: velocity 
+    lmuy_p = (A_mu*lmuy_str)/(1+((A_mu - 1)*lmuy_str))
     zeta = 1
     k_xk = fz * (pkx1 + (pkx2*dfz)) * (exp(pkx3*dfz)) * (1 + (ppx1*dpi) + (ppx2*(dpi^2)))       # (4.E15) note: unknown thing under equation questionable
 
