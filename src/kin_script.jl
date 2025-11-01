@@ -1,5 +1,6 @@
 using Plots
-include("kinematics/kin_solver.jl")
+include("kinematics/kinematics.jl")
+using .Kinematics
 
 # @time sol = gen_kin_model("src/parameters/HDPT_Export.xlsx")
 # @time sol = gen_kin_model("src/parameters/HDPT_Export.xlsx")

@@ -31,7 +31,7 @@ function gen_kin_models(file_name::String, steer_range, f_shock_range, r_shock_r
     fl_T0 = fl_fun(fl_ctrl0)
     fl_jac0 = jac_wrapper(fl_fun, fl_ctrl0, fl_T0)
     fl_T_array = zeros(eltype(fl_T0),size(steer_range)...,size(f_shock_range)...,size(fl_T0)...)
-    fl_jac_array = zeros(eltype(fl_jac0),size(steer_range)...,size(f_shock_range)...,size(fl_jac0)...)git 
+    fl_jac_array = zeros(eltype(fl_jac0),size(steer_range)...,size(f_shock_range)...,size(fl_jac0)...) 
 
     # TODO: Benchmark ForwardDiff and FiniteDiff jacobian calculations against eachother
     for i = eachindex(steer_range)
