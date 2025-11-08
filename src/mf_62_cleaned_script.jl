@@ -3,7 +3,7 @@ include("tires/parse_tire.jl")
 using Plots
 plotlyjs()
 
-model = parse_tir("src/parameters/FSAE_Defaults.tir")
+model = parse_tir("src/parameters/Dynamics_Cornering.tir")
 model["LMUV"] = 1
 data = Dict{String, Any}("vcx" => 1, "vc" => 1)
 
@@ -11,23 +11,23 @@ alpha = -deg2rad(24):deg2rad(0.01):deg2rad(24)
 kappa = -1.2:0.01:1.2
 gamma = -deg2rad(5):deg2rad(2):deg2rad(5)
 
-out = []
-for g in gamma
-    local at = []
-    for a in alpha
-        MF62.base(model, data, 1, 1, 800, a, 0, g, 0)
-        push!(at, MF62.at(model, data, 800.0, a, 0, g))
-    end
-    push!(out, at)
-end
-plot(alpha, out, label=["-pi/4" "-pi/8" 0 "pi/8" "pi/4"])
+# out = []
+# for g in gamma
+#     local at = []
+#     for a in alpha
+#         MF62.base(model, data, 1, 1, 800, a, 0, g, 0)
+#         push!(at, MF62.at(model, data, 800.0, a, 0, g))
+#     end
+#     push!(out, at)
+# end
+# plot(alpha, out, label=["-pi/4" "-pi/8" 0 "pi/8" "pi/4"])
 
 # out = []
 # for g in gamma
 #     local rrm = []
 #     for k in kappa
 #         MF62.base(model, data, 1, 1, 800, 0, k, g, 0)
-#         push!(rrm, MF62.rrm(model, data, 1, 800.0, 0, k, g))
+#         push!(rrm, MF62.rrm(model, data, 800.0, 1, 0, k, g))
 #     end
 #     push!(out, rrm)
 # end

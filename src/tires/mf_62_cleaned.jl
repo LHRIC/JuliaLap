@@ -55,6 +55,8 @@ function base(params::Dict{String, Any}, data::Dict{String, Any}, vx, vy, fz, al
     data["r0"] = r0
     data["v0"] = v0
     data["cosalpha_p"] = cosalpha_p
+    data["p_i"] = p_i
+    data["p_io"] = p_io
     return
 end
 
@@ -198,6 +200,7 @@ end
 function at0(params::Dict{String,Any}, data::Dict{String, Any}, fz, alpha, gamma)
 
     f_y0 = fy0(params, data, fz, alpha, gamma)  # function call to fy TODO: want to multiply by friction scalling 
+    r0 = data["r0"]
     zeta = data["zeta"]
     dfz = data["dfz"]
     dpi = data["dpi"]
@@ -243,7 +246,6 @@ function at0(params::Dict{String,Any}, data::Dict{String, Any}, fz, alpha, gamma
     qez5 = p["QEZ5"]
 
     lky = p["LKY"]
-    r0 = p["UNLOADED_RADIUS"]           # Unloaded tire radius 
     ltr = p["LTR"]                      # Pneumatic trail
     lres = p["LRES"]                    # Residual torque
     lkzc = p["LKZC"]                    # Camber torque stiffness
@@ -415,7 +417,10 @@ function rrm(params::Dict{String,Any}, data::Dict{String, Any}, fz, vx, alpha, k
 
     f_x = fx(params, data, fz, alpha, kappa, gamma)
     v0 = data["v0"]
-
+    r0 = data["r0"]           # Unloaded tire radius
+    p_i = data["p_i"]                 # Tire inflation pressure
+    p_io = data["p_io"]                 # Nominal inflation pressure
+    fz0 = data["fz0"]
 
     p = params
     qsy1 = p["QSY1"]
@@ -426,11 +431,6 @@ function rrm(params::Dict{String,Any}, data::Dict{String, Any}, fz, vx, alpha, k
     qsy6 = p["QSY6"]
     qsy7 = p["QSY7"]
     qsy8 = p["QSY8"]
-    r0 = p["UNLOADED_RADIUS"]           # Unloaded tire radius
-    
-    p_i = p["INFLPRES"]                 # Tire inflation pressure
-    p_io = p["NOMPRES"]                 # Nominal inflation pressure
-    fz0 = p["FNOMIN"]
 
     lmy = p["LMY"]
 
