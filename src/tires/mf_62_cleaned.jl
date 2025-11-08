@@ -7,6 +7,7 @@ module MF62
 # 1"s represent un-used user correction coefficents and un-implemented tire pressure sensitivity
 
 function base(params::Dict{String, Any}, data::Dict{String, Any}, vx, vy, fz, alpha, kappa, gamma, omega)
+    
     p = params
 
     lfz0 = p["LFZO"]                                    # Scale factor of nominal (rated) load
@@ -29,6 +30,7 @@ function base(params::Dict{String, Any}, data::Dict{String, Any}, vx, vy, fz, al
     alpha_str = tan(alpha) * sign(vcx)                  # (4.E3)
     gam_str = sin(gamma)                                # (4.E4)
     # (4.E5) calculation for kappa not used
+    epsilon = 0                                         # TODO
     vcp = vc - epsilon                                  # (4.E6a)
     cosalpha_p = vcx/vcp                                # (4.E6) TODO: above
     zeta = 1                                            # TODO: check i part
@@ -39,14 +41,28 @@ function base(params::Dict{String, Any}, data::Dict{String, Any}, vx, vy, fz, al
     lmux_p = (A_mu*lmux_str)/(1+((A_mu - 1)*lmux_str))  # (4.E8)
     lmuy_p = (A_mu*lmuy_str)/(1+((A_mu - 1)*lmuy_str))  # (4.E8)
 
-    data = merge(data, Dict{String, Any}("fz0p" => fz0p, "dfz" => dfz, 
-    "dpi" => dpi, "alpha_str" => alpha_str, "gam_str" => gam_str, 
-    "cosalpha_p" => cosalpha_p, "zeta" => zeta, "lmux_str" => lmux_str, 
-    "lmuy_str" => lmuy_str, "lmux_p" => lmux_p, "lmuy_p" => lmuy_p, "v0" => v0))
+    data["zeta"] = zeta
+    data["dfz"] = dfz
+    data["dpi"] = dpi
+    data["lmux_str"] = lmux_str
+    data["lmuy_str"] = lmuy_str
+    data["lmux_p"] = lmux_p
+    data["lmuy_p"] = lmuy_p
+    data["fz0p"] = fz0p
+    data["gam_str"] = gam_str
+    data["alpha_str"] = alpha_str
+    data["fz0"] = fz0
+    data["r0"] = r0
     return
 end
 
 function fx0(params::Dict{String,Any}, data::Dict{String, Any}, fz, kappa, gamma)
+
+    zeta = data["zeta"]
+    dfz = data["dfz"]
+    dpi = data["dpi"]
+    lmux_str = data["lmux_str"]
+    lmux_p = data["lmux_p"]
 
     # initialize variables from parse tire dictionary 
     p = params
@@ -77,37 +93,39 @@ function fx0(params::Dict{String,Any}, data::Dict{String, Any}, fz, kappa, gamma
     lvx = p["LVX"]                      # Vertical shift
     
     friction_scaling_x = p["friction_scaling_x"]
-    
-    zeta = data["zeta"]
-    dfz = data["dfz"]
-    dpi = data["dpi"]
-    lmux_str = data["lmux_str"]
-    lmux_p = data["lmux_p"]
 
     # longitudinal force (alpha = 0)
     s_vx = fz * (pvx1 + (pvx2*dfz)) * lvx * lmux_p * zeta        # (4.E18)
     s_hx = (phx1 + (phx2*dfz))*lhx      # (4.E17)
     c_x = pcx1*lcx                      # (4.E11)
-    @assert c_x > 1
+    @assert c_x > 0
     mux = (pdx1 + (pdx2*dfz)) * (1+(ppx3*dpi) + (ppx4*(dpi^2))) * (1 - (pdx3*(gamma^2))) * lmux_str   # (4.E13)
     d_x = mux * fz * zeta               # (4.E12)
-    @assert d_x > 1 
+    @assert d_x > 0
+    kappa_x = kappa + s_hx              # (4.E10)
     e_x = (pex1 + (pex2*dfz) + pex3*(dfz^2)) * (1 - (pex4*sign(kappa_x))) * lex          # (4.E14)
     @assert e_x <= 1
     k_xk = fz * (pkx1 + (pkx2*dfz)) * (exp(pkx3*dfz)) * (1 + (ppx1*dpi) + (ppx2*(dpi^2)))       # (4.E15) note: unknown thing under equation questionable
     epsilon = 0                         # error amount, assume this is perfecto
     b_x = k_xk/((c_x * d_x) + epsilon)  # (4.E16)
-    kappa_x = kappa + s_hx              # (4.E10)
     fx0 = d_x * (sin(c_x * atan(b_x*kappa_x - e_x*(b_x*kappa_x - atan(b_x*kappa_x))))) + s_vx         # (4.E9)
 
-    data = merge(data, Dict{String, Any}())
     return fx0*friction_scaling_x
 end
 
 
 # Compute lateral force (pure slip, κ = 0)
-function fy0(params::Dict{String,Any}, fz, alpha, gamma)
-    # old 
+function fy0(params::Dict{String,Any}, data::Dict{String, Any}, fz, alpha, gamma)
+    
+    fz0p = data["fz0p"]
+    dfz = data["dfz"]
+    dpi = data["dpi"]
+    gam_str = data["gam_str"]
+    lmuy_str = data["lmuy_str"]
+    lmuy_p = data["lmuy_p"]
+    alpha_str = data["alpha_str"]
+    zeta = data["zeta"]
+
     p = params
     pcy1 = p["PCY1"]
     pdy1 = p["PDY1"]
@@ -146,42 +164,50 @@ function fy0(params::Dict{String,Any}, fz, alpha, gamma)
     lkyg = p["LKYC"]
     friction_scaling_y = p["friction_scaling_y"]
 
-    fz0p = data["fz0p"]            # (4.E1)
-
-    dfz = data["dfz"]           # (4.E2a)
-    dpi = data["dpi"]          # (4.E2b)
-
-    gam_str = data["gam_str"]               # (4.E4)
-    lmuy_str = data["lmuy_str"]                       # (4.E7)
-    lmuy_p = data["lmuy_p"]
-
-    # alpha_str needs velocity, have to implement for the other method, assume it is 1 for now 
-    alpha_str = data["alpha_str"]
-    zeta = data["zeta"]
     epsilon_K = 0                      # Assume for now there is no error in kappa 
     epsilon_y = 0                      # Assume for now there is no error in y 
 
     k_yg0 = fz*(pky6 + (pky7*dfz))*(1 + (ppy5*dpi))*lkyg          # (4.E30)
-    s_vy = fz*(pvy1 + pvy2*dfz)*lvy*lmuy_p*zeta + s_vyg          # (4.E29)
     s_vyg = fz*(pvy3+(pvy4*dfz))*gam_str*lkyg*lmuy_p*zeta  # (4.E28)
-    s_hy = (phy1 + (phy2*dfz))*lhy + (((k_yg0*gam_str) - s_vyg)/(k_ya + epsilon_K))*zeta + zeta - 1 # (4.E27)
+    s_vy = fz*(pvy1 + pvy2*dfz)*lvy*lmuy_p*zeta + s_vyg          # (4.E29)
     k_ya = pky1*fz0p*(1+(ppy1*dpi))*(1-(pky3*abs(gam_str)))*sin(pky4*atan((fz/fz0p)/((pky2+(pky5*(gam_str^2)))*(1+(ppy2*dpi)))))*zeta*lky            # (4.E25)
-    b_y = k_ya/(c_y*d_y + epsilon_y)                        # (4.E26)
-    e_y = (pey1 + pey2*dfz)*(1+pey5*(gam_str^2) - (pey3 + pey4*gam_str)*sign(alpha_y))*ley     # (4.E24)
-    @assert e_y <= 1 "e_y is greater than 1"
-    muy = (pdy1 + (pdy2*dfz))*(1 + (ppy3*dpi) + (ppy4*(dpi^2)))*(1 - (pdy3*(gam_str^2)))*lmuy_str            # (4.E23)
-    d_y = muy*fz*zeta                                      # (4.E22)
+    s_hy = (phy1 + (phy2*dfz))*lhy + (((k_yg0*gam_str) - s_vyg)/(k_ya + epsilon_K))*zeta + zeta - 1 # (4.E27)
     c_y = pcy1*lcy                                          # (4.E21)
     @assert c_y > 0 "c_y is less than 0"
+    mu_y = (pdy1 + (pdy2*dfz))*(1 + (ppy3*dpi) + (ppy4*(dpi^2)))*(1 - (pdy3*(gam_str^2)))*lmuy_str            # (4.E23)
+    d_y = mu_y*fz*zeta                                      # (4.E22)
+    b_y = k_ya/(c_y*d_y + epsilon_y)                        # (4.E26)
     alpha_y = alpha_str + s_hy                              # (4.E20)
+    e_y = (pey1 + pey2*dfz)*(1+pey5*(gam_str^2) - (pey3 + pey4*gam_str)*sign(alpha_y))*ley     # (4.E24)
+    @assert e_y <= 1 "e_y is greater than 1"
     fy0 = d_y*sin(c_y*atan(b_y*alpha_y - e_y*(b_y*alpha_y - atan(b_y*alpha_y)))) + s_vy
     
-    data = merge(data, Dict{String, Any}())
+    data["b_y"] = b_y
+    data["c_y"] = c_y
+    data["k_ya"] = k_ya
+    data["s_hy"] = s_hy
+    data["s_vy"] = s_vy
+    data["mu_y"] = mu_y
     return fy0*friction_scaling_y
 end
 
 # Aligning Torque (pure slip slip, kappa = 0)
-function at0(params::Dict{String,Any}, fz, alpha, gamma)
+function at0(params::Dict{String,Any}, data::Dict{String, Any}, fz, alpha, gamma)
+
+    f_y0 = fy0(params, data, fz, alpha, gamma)  # function call to fy TODO: want to multiply by friction scalling 
+    zeta = data["zeta"]
+    dfz = data["dfz"]
+    dpi = data["dpi"]
+    gam_str = data["gam_str"]
+    lmuy_str = data["lmuy_str"]
+    b_y = data["b_y"]
+    c_y = data["c_y"]
+    alpha_str = data["alpha_str"]
+    fz0p = data["fz0p"]
+    k_ya = data["k_ya"]
+    s_hy = data["s_hy"]
+    s_vy = data["s_vy"]
+
     p = params
     qhz1 = p["QHZ1"]
     qhz2 = p["QHZ2"]
@@ -219,40 +245,41 @@ function at0(params::Dict{String,Any}, fz, alpha, gamma)
     lres = p["LRES"]                    # Residual torque
     lkzc = p["LKZC"]                    # Camber torque stiffness
 
-    # come back for 4.E3
-    gam_str = sin(gamma)               # (4.E4)
-
-    alpha_str = data["alpha_str"]
-    epsilon_K = 0 
-    zeta = 1
+    epsilon_K = 0
 
     d_r = fz*r0*((qdz6+qdz7)*lres*zeta + ((qdz8 + qdz9*dfz)*(1 + ppz2*dpi) + (qdz10 + qdz11*dfz)*abs(gam_str))*gam_str*lkzc*zeta)*lmuy_str*cos(alpha) + zeta - 1 # (4.E47)
     c_r = zeta                      # (4.E46)
-    b_r = ((qbz9*lky)/(lmuy_str + qbz10*b_y*c_y))*zeta          # (4.E45)
+    b_r = (qbz9*lky/lmuy_str + qbz10*b_y*c_y)*zeta          # (4.E45)
+    b_t = (qbz1 + qbz2*dfz + qbz3*dfz^2)*(1 + qbz5*abs(gam_str) + qbz6*gam_str^2)*(lky/lmuy_str) # (4.E40)
+    @assert b_t > 0
+    c_t = qcz1                    # (4.E41)   
+    s_ht = qhz1 + qhz2*dfz + (qhz3 + qhz4*dfz)gam_str      # (4.E35)
+    a_t = alpha_str + s_ht      # (4.E34)
     e_t = (qez1 + qez2*dfz + qez3*dfz^2)*(1+(qez4 + qez5*gam_str)*(2/pi)*atan(b_t*c_t*a_t))     # (4.E44)
     @assert e_t <= 1
     d_t0 = fz*(r0/fz0p)*(qdz1 + qdz2*dfz)*(1-ppz1*dpi)*ltr      # (4.E42) TODO: velocity sign 
     d_t = d_t0*(1+qdz3*abs(gam_str) + qdz4*gam_str^2)*zeta      # (4.E43)
-    c_t = qcz1                    # (4.E41)   
     @assert c_t > 0
-    b_t = (qbz1 + qbz2*dfz + qbz3*dfz^2)*(1 + qbz5*abs(gam_str) + qbz6*gam_str^2)*(lky/lmuy_str) # (4.E40)
     k_ya_p = k_ya + epsilon_K                              # (4.E39)
     s_hf = s_hy + s_vy/k_ya_p                              # (4.E38)
     a_r = alpha_str + s_hf                                 # (4.E37)
     m_zr0 = d_r*cos(c_r*atan(b_r*a_r))*cos(alpha)          # (4.E36)
-    s_ht = qhz1 + qhz2*dfz + (qhz3 + qhz4*dfz)gam_str      # (4.E35)
-    a_t = alpha_str + s_ht      # (4.E34)
     t_0 = d_t*cos(c_t*atan(b_t*a_t - e_t*(b_t*a_t-atan(b_t*a_t))))*cos(alpha)       # (4.E33) TODO: cos prime -> velocity implementation 
-    f_y0 = fy0(p, fz, alpha, gamma)  # function call to fy TODO: want to multiply by friction scalling 
     m_z0_p = -t_0*f_y0          # (4.E32)
     m_z0 = m_z0_p + m_zr0       # (4.E31)
+
     return m_z0
 end
 
 # longitudinal force (combined slip)
-function fx(params::Dict{String,Any}, fz, alpha, kappa, gamma)
+function fx(params::Dict{String,Any}, data::Dict{String, Any}, fz, alpha, kappa, gamma)
+    
+    f_x0 = fx0(params, data, fz, kappa, gamma)
+    dfz = data["dfz"]
+    gam_str = data["gam_str"]
+    alpha_str = data["alpha_str"]
+    
     p = params
-
     rbx1 = p["RBX1"]
     rbx2 = p["RBX2"]
     rbx3 = p["RBX3"]
@@ -265,6 +292,7 @@ function fx(params::Dict{String,Any}, fz, alpha, kappa, gamma)
 
     s_hxa = rhx1                    # (4.E57)
     e_xa = rex1 + rex2*dfz          # (4.E56)
+    @assert e_xa <= 1
     c_xa = rcx1                     # (4.E55)
     b_xa = (rbx1 + rbx3*gam_str^2)*cos(atan(rbx2*kappa))*lxal       # (4.E54)
     @assert b_xa > 0 
@@ -272,15 +300,22 @@ function fx(params::Dict{String,Any}, fz, alpha, kappa, gamma)
     g_xa0 = cos(c_xa*atan(b_xa*s_hxa - e_xa*(b_xa*s_hxa - atan(b_xa*s_hxa))))  # (4.E52)
     g_xa = cos(c_xa*atan(b_xa*a_s - e_xa*(b_xa*a_s - atan(b_xa*a_s))))/g_xa0    # (4.E51)
     @assert g_xa > 0 
-    fx = g_xa*fx0(p, fz, kappa, gamma)      # (4.E50)
+    fx = g_xa*f_x0      # (4.E50)
 
     return fx
 end
 
 # lateral force (combined slip)
-function fy(params::Dict{String,Any}, fz, alpha, kappa, gamma)
+function fy(params::Dict{String,Any}, data::Dict{String, Any}, fz, alpha, kappa, gamma)
+    
+    f_y0 = fy0(params, data, fz, alpha, gamma)
+    mu_y = data["mu_y"]
+    dfz = data["dfz"]
+    gam_str = data["gam_str"]
+    alpha_str = data["alpha_str"]
+    zeta = data["zeta"]
+    
     p = params
-
     rby1 = p["RBY1"]
     rby2 = p["RBY2"]
     rby3 = p["RBY3"]
@@ -304,14 +339,15 @@ function fy(params::Dict{String,Any}, fz, alpha, kappa, gamma)
     s_vyk = d_vyk*sin(rvy5*atan(rvy6*kappa)) * lvyk
     s_hyk = rhy1 + rhy2*dfz
     e_yk = rey1 + rey2*dfz
+    @assert e_yk <= 1
     c_yk = rcy1
-    b_yk = (rby1 + rby4*gam_str)*cos(atan(rby2*(alpha_str - rby3))) * lyk
+    b_yk = (rby1 + rby4*gam_str^2)*cos(atan(rby2*(alpha_str - rby3))) * lyk
     @assert b_yk > 0
     k_s = kappa + s_hyk
     g_yk0 = cos(c_yk*atan(b_yk*s_hyk - e_yk*(b_yk*s_hyk - atan(b_yk*s_hyk))))
     g_yk = cos(c_yk*atan(b_yk*k_s - e_yk*(b_yk*k_s - atan(b_yk*k_s))))/g_yk0
     @assert g_yk > 0
-    fy = g_yk*fy0(params, fz, alpha, gamma) + s_vyk
+    fy = g_yk*f_y0 + s_vyk
 
     return fy
 end
@@ -326,9 +362,14 @@ end
 # overturning couple
 # currently only gives 0, but it makes sense when looking at the inputs
 
-function oc(params::Dict{String,Any}, fz, alpha, kappa, gamma)
+function oc(params::Dict{String,Any}, data::Dict{String, Any}, fz, alpha, kappa, gamma)
+    
+    f_y = fy(params, data, fz, alpha, kappa, gamma)
+    dpi = data["dpi"]
+    fz0 = data["fz0"]
+    r0 = data["r0"]
+
     p = params
-    r0 = p["UNLOADED_RADIUS"]           # Unloaded tire radius
     qsx1 = p["QSX1"]
     qsx2 = p["QSX2"]
     qsx3 = p["QSX3"]
@@ -344,8 +385,6 @@ function oc(params::Dict{String,Any}, fz, alpha, kappa, gamma)
 
     lvmx = p["LVMX"]
     lmx = p["LMX"]
-
-    f_y = fy(p, fz, alpha, kappa, gamma)
 
     part_1 = qsx1*lvmx - qsx2*gamma*(1+ppmx1*dpi) + qsx3*(f_y/fz0)
     part_2_1 = qsx5*(atan(qsx6*(fz/fz0)))^2
@@ -377,7 +416,7 @@ function rrm(params::Dict{String,Any}, fz, vx, alpha, kappa, gamma)
     lmy = p["LMY"]
 
     f_x = fx(p, fz, alpha, kappa, gamma)
-    part_1 = qsy1 + qsy2*f_x/fz0 + qsy3*abs(vx/v0) + qsy4 + (vx/v0)^4 + (qsy5 + qsy6*fz/fz0)*gamma^2
+    part_1 = qsy1 + qsy2*f_x/fz0 + qsy3*abs(vx/v0) + qsy4*(vx/v0)^4 + (qsy5 + qsy6*fz/fz0)*gamma^2
     part_2 = (fz/fz0)^qsy7 * (p_i/p_io)^qsy8
 
     m_y = fz*r0*part_1*part_2*lmy
