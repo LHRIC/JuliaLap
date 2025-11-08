@@ -53,6 +53,8 @@ function base(params::Dict{String, Any}, data::Dict{String, Any}, vx, vy, fz, al
     data["alpha_str"] = alpha_str
     data["fz0"] = fz0
     data["r0"] = r0
+    data["v0"] = v0
+    data["cosalpha_p"] = cosalpha_p
     return
 end
 
@@ -110,6 +112,7 @@ function fx0(params::Dict{String,Any}, data::Dict{String, Any}, fz, kappa, gamma
     b_x = k_xk/((c_x * d_x) + epsilon)  # (4.E16)
     fx0 = d_x * (sin(c_x * atan(b_x*kappa_x - e_x*(b_x*kappa_x - atan(b_x*kappa_x))))) + s_vx         # (4.E9)
 
+    data["k_xk"] = k_xk
     return fx0*friction_scaling_x
 end
 
@@ -268,6 +271,16 @@ function at0(params::Dict{String,Any}, data::Dict{String, Any}, fz, alpha, gamma
     m_z0_p = -t_0*f_y0          # (4.E32)
     m_z0 = m_z0_p + m_zr0       # (4.E31)
 
+    data["a_r"] = a_r
+    data["k_ya_p"] = k_ya_p
+    data["a_t"] = a_t
+    data["d_r"] = d_r
+    data["c_r"] = c_r
+    data["b_r"] = b_r
+    data["b_t"] = b_t
+    data["d_t"] = d_t
+    data["c_t"] = c_t
+    data["e_t"] = e_t
     return m_z0
 end
 
@@ -349,6 +362,7 @@ function fy(params::Dict{String,Any}, data::Dict{String, Any}, fz, alpha, kappa,
     @assert g_yk > 0
     fy = g_yk*f_y0 + s_vyk
 
+    data["g_yk"] = g_yk
     return fy
 end
 
@@ -397,7 +411,12 @@ function oc(params::Dict{String,Any}, data::Dict{String, Any}, fz, alpha, kappa,
 end 
 
 # Rolling Resistance Moment
-function rrm(params::Dict{String,Any}, fz, vx, alpha, kappa, gamma)
+function rrm(params::Dict{String,Any}, data::Dict{String, Any}, fz, vx, alpha, kappa, gamma)
+
+    f_x = fx(params, data, fz, alpha, kappa, gamma)
+    v0 = data["v0"]
+
+
     p = params
     qsy1 = p["QSY1"]
     qsy2 = p["QSY2"]
@@ -415,7 +434,6 @@ function rrm(params::Dict{String,Any}, fz, vx, alpha, kappa, gamma)
 
     lmy = p["LMY"]
 
-    f_x = fx(p, fz, alpha, kappa, gamma)
     part_1 = qsy1 + qsy2*f_x/fz0 + qsy3*abs(vx/v0) + qsy4*(vx/v0)^4 + (qsy5 + qsy6*fz/fz0)*gamma^2
     part_2 = (fz/fz0)^qsy7 * (p_i/p_io)^qsy8
 
@@ -424,7 +442,30 @@ function rrm(params::Dict{String,Any}, fz, vx, alpha, kappa, gamma)
 end
 
 # Aligning Torque (combined slip)
-function at(params::Dict{String,Any}, fz, alpha, kappa, gamma)
+function at(params::Dict{String,Any}, data::Dict{String, Any}, fz, alpha, kappa, gamma)
+    
+    f_y0 = fy0(params, data, fz, alpha, 0)
+    f_x = fx(params, data, fz, alpha, kappa, gamma)
+    f_y = fy(params, data, fz, alpha, kappa, gamma)
+    at0(params, data, fz, alpha, gamma)
+    a_r = data["a_r"]
+    k_xk = data["k_xk"]
+    k_ya_p = data["k_ya_p"]
+    a_t = data["a_t"]
+    r0 = data["r0"]
+    fz0p = data["fz0p"]
+    dfz = data["dfz"]
+    gam_str = data["gam_str"]
+    d_r = data["d_r"]
+    c_r = data["c_r"]
+    b_r = data["b_r"]
+    cosalpha_p = data["cosalpha_p"]
+    g_yk = data["g_yk"]
+    b_t = data["b_t"]
+    d_t = data["d_t"]
+    c_t = data["c_t"]
+    e_t = data["e_t"]
+
     p = params
     ssz1 = p["SSZ1"]
     ssz2 = p["SSZ2"]
@@ -436,13 +477,13 @@ function at(params::Dict{String,Any}, fz, alpha, kappa, gamma)
     alpha_req = sqrt(a_r^2 + (k_xk/k_ya_p)^2*kappa^2)*sign(a_r)
     alpha_teq = sqrt(a_t^2 + (k_xk/k_ya_p)^2*kappa^2)*sign(a_t)
     s = r0 * (ssz1 + ssz2*(f_y/fz0p) + (ssz3 + ssz4*dfz)*gam_str)*ls
-    m_zr = d_r * cos(c_r*atan(b_r*alpha_req))*cos(alpha) # TODO: check cos_p(alpha)
-    fy_p = g_yk * fy0(p, f_x, alpha, 0)
+    m_zr = d_r * cos(c_r*atan(b_r*alpha_req))*cosalpha_p
+    fy_p = g_yk * f_y0
     b_alpha_t = b_t*alpha_teq
-    t = d_t*cos(c_t*atan(b_alpha_t - e_t*(b_alpha_t - atan(b_alpha_t)))) * cos(alpha) # TODO: check cos_p(alpha)
+    t = d_t*cos(c_t*atan(b_alpha_t - e_t*(b_alpha_t - atan(b_alpha_t)))) * cosalpha_p
     m_zp = -t * fy_p
     m_z = m_zp + m_zr + s * f_x
     return m_z
 end
 
-end # module
+end
