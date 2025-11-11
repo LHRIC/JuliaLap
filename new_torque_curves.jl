@@ -27,7 +27,7 @@ end
 # Optional visualization helper
 # ──────────────────────────────────────────────────────────────
 function plot_torque_curve()
-    lin_int = get_torque_interp()
+    lin_int = get_torque_interp("38normalized.csv")
     df = CSV.read("38normalized.csv", DataFrame)
     x = df[:, 1]
     rpms = range(first(x), last(x), length=200)
