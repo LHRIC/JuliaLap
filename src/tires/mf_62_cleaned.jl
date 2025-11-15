@@ -172,11 +172,15 @@ function fy0(params::Dict{String,Any}, data::Dict{String, Any}, fz, alpha, gamma
     epsilon_K = 0                      # Assume for now there is no error in kappa 
     epsilon_y = 0                      # Assume for now there is no error in y 
 
-    k_yg0 = fz*(pky6 + (pky7*dfz))*(1 + (ppy5*dpi))*lkyg          # (4.E30)
+    phy3 = 0.144919
+    k_ya0 = pky1*fz0p*sin(pky4*atan(fz/(pky2*fz0p)))*lkyg
+    k_yg0 = (phy3*k_ya0 + fz*(pvy3+pvy4*dfz))*lkyg
+    # k_yg0 = fz*(pky6 + (pky7*dfz))*(1 + (ppy5*dpi))*lkyg          # (4.E30)
     s_vyg = fz*(pvy3+(pvy4*dfz))*gam_str*lkyg*lmuy_p*zeta  # (4.E28)
     s_vy = fz*(pvy1 + pvy2*dfz)*lvy*lmuy_p*zeta + s_vyg          # (4.E29)
     k_ya = pky1*fz0p*(1+(ppy1*dpi))*(1-(pky3*abs(gam_str)))*sin(pky4*atan((fz/fz0p)/((pky2+(pky5*(gam_str^2)))*(1+(ppy2*dpi)))))*zeta*lky            # (4.E25)
-    s_hy = (phy1 + (phy2*dfz))*lhy + (((k_yg0*gam_str) - s_vyg)/(k_ya + epsilon_K))*zeta + zeta - 1 # (4.E27)
+    s_hy = (phy1 + (phy2*dfz))*lhy + phy3*gam_str*lkyg
+    # s_hy = (phy1 + (phy2*dfz))*lhy + (((k_yg0*gam_str) - s_vyg)/(k_ya + epsilon_K))*zeta + zeta - 1 # (4.E27)
     c_y = pcy1*lcy                                          # (4.E21)
     @assert c_y > 0 "c_y is less than 0"
     mu_y = (pdy1 + (pdy2*dfz))*(1 + (ppy3*dpi) + (ppy4*(dpi^2)))*(1 - (pdy3*(gam_str^2)))*lmuy_str            # (4.E23)
