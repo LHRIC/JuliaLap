@@ -1,131 +1,47 @@
 include("tires/mf_62_cleaned.jl")
 include("tires/parse_tire.jl")
 using Plots
+using ModelingToolkit
 plotlyjs()
 
-model = parse_tir("src/parameters/sample.tir")
+# model = parse_tir("src/parameters/Round_8_Hoosier_R25B_16x7p5_10_on_7in_12psi_PAC02_UM2.tir")
+# model = parse_tir("src/parameters/R20_16x7p5_10_on_7in_12psi_PAC2002.tir")
 # model = parse_tir("src/parameters/FSAE_Defaults.tir")
+model = parse_tir("src/parameters/R20_16x7p5_10_on_7in_12psi_PAC2002.tir")
+# model = parse_tir("src/parameters/Dynamics copy.tir")
+
 
 model["LMUV"] = 1
 data = Dict{String, Any}("vcx" => 1, "vc" => 1)
 
 alpha = -deg2rad(24):deg2rad(0.01):deg2rad(24)
 kappa = -1.2:0.01:1.2
+# kappa = -0.2:0.01:0.2
 gamma = -deg2rad(5):deg2rad(2):deg2rad(5)
 
-# dumb stuff
-# fz_sweep = 1:1:1200
-# out = []
-# for a in alpha
-#     local fy0 = []
-#     for fz in fz_sweep
-#         MF62.base(model, data, 1, 1, fz, a, 0, 0, 0)
-#         push!(fy0, MF62.fy0(model, data, fz, a, 0)/fz)
-#     end
-#     push!(out, fy0)
-# end
-# plot(fz_sweep, out)
-
-# out = []
-# for g in gamma
-#     local at = []
-#     for a in alpha
-#         MF62.base(model, data, 1, 1, 800, a, 0, g, 0)
-#         push!(at, MF62.at(model, data, 800.0, a, 0, g))
-#     end
-#     push!(out, at)
-# end
-# plot(alpha, out, label=["-pi/4" "-pi/8" 0 "pi/8" "pi/4"])
-
-# out = []
-# for g in gamma
-#     local rrm = []
-#     for k in kappa
-#         MF62.base(model, data, 1, 1, 800, 0, k, g, 0)
-#         push!(rrm, MF62.rrm(model, data, 800.0, 1, 0, k, g))
-#     end
-#     push!(out, rrm)
-# end
-# plot(kappa, out, label=["-pi/4" "-pi/8" 0 "pi/8" "pi/4"])
-
-# out = []
-# for g in gamma
-#     local oc = []
-#     for a in alpha
-#         MF62.base(model, data, 1, 1, 800, a, 0, g, 0)
-#         push!(oc, MF62.oc(model, data, 800.0, a, 0, g))
-#     end
-#     push!(out, oc)
-# end
-# plot(alpha, out, label=["-pi/4" "-pi/8" 0 "pi/8" "pi/4"])
-
-# out = zeros(length(alpha), length(kappa))
-# for a in eachindex(alpha)
-#     for k in eachindex(kappa)
-#         MF62.base(model, data, 1, 1, 800, alpha[a], kappa[k], gamma[1], 0)
-#         out[a, k] = MF62.fy(model, data, 800.0, alpha[a], kappa[k], gamma[1])
-#     end
-# end
-# plot(alpha, kappa, out';
-#     seriestype = :surface,
-#     xlabel = "Alpha (slip angle)",
-#     ylabel = "Kappa (slip ratio)",
-#     zlabel = "Fy (Lateral Force)",
-#     title = "Magic Formula 62 Tire Model",
-#     legend = false,
-#     markersize = 4,
-#     markerstrokewidth = 0,
-#     markercolor = :blue
-# )
-
-# out = zeros(length(alpha), length(kappa))
-# for a in eachindex(alpha)
-#     for k in eachindex(kappa)
-#         MF62.base(model, data, 1, 1, 800, alpha[a], kappa[k], gamma[1], 0)
-#         out[a, k] = MF62.fx(model, data, 800.0, alpha[a], kappa[k], gamma[1])
-#     end
-# end
-# plot(alpha, kappa, out';
-#     seriestype = :surface,
-#     xlabel = "Alpha (slip angle)",
-#     ylabel = "Kappa (slip ratio)",
-#     zlabel = "Fx (Longitudinal Force)",
-#     title = "Magic Formula 62 Tire Model",
-#     legend = false,
-#     markersize = 4,
-#     markerstrokewidth = 0,
-#     markercolor = :blue
-# )
-
-# out = []
-# for g in gamma
-#     local at0 = []
-#     for a in alpha
-#         MF62.base(model, data, 1, 1, 800, a, 0, g, 0)
-#         push!(at0, MF62.at0(model, data, 800.0, a, g))
-#     end
-#     push!(out, at0)
-# end
-# plot(alpha, out, label=["-pi/4" "-pi/8" 0 "pi/8" "pi/4"])
-
+fz = 2092.99
 out = []
-for g in gamma
-    local fy0 = []
-    for a in alpha
-        MF62.base(model, data, 1, 1, 800, a, 0, g, 0)
-        push!(fy0, MF62.fy0(model, data, 800.0, a, g))
-    end
-    push!(out, fy0)
-end
-plot(alpha, out, label=["-pi/4" "-pi/8" 0 "pi/8" "pi/4"])
-
-# out = []
-# for g in gamma
-#     local fx0 = []
-#     for k in kappa
-#         MF62.base(model, data, 1, 1, 800, 0, k, g, 0)
-#         push!(fx0, MF62.fx0(model, data, 800.0, k, g))
-#     end
-#     push!(out, fx0)
-# end
+fzs = 1000:100:2092.99
+# fzs = 1250
+g = 0
 # plot(kappa, out, label=["-pi/4" "-pi/8" 0 "pi/8" "pi/4"])
+# println(kappa, out)
+k = 1
+fz = 2092.99
+p = model
+# MF62.base(1, 1, fz, 0, k, g, 0)
+# lfz0, p_i, p_io, lmux, lmuy, lmuv, r0, g, vcx, vc, fz0 = MF62.params
+# fun = MF62.fx0
+@mtkcompile sys = OptimizationSystem(MF62.fx0, [MF62.params...], [])
+# params_dict = Dict(
+#     lfz0 => p["LFZO"],
+#     fz0  => p["FNOMIN"],
+#     lmux => p["LMUX"],
+#     lmuy => p["LMUY"],
+#     lmuv => p["LMUV"],
+#     r0   => p["UNLOADED_RADIUS"],
+#     g    => p["GRAVITY"],
+#     vcx  => data["vcx"],
+#     vc   => data["vc"],
+# )
+# val = substitute(fun, params_dict)
