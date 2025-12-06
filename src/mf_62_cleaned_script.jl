@@ -3,15 +3,31 @@ include("tires/parse_tire.jl")
 using Plots
 plotlyjs()
 
-model = parse_tir("src/parameters/sample.tir")
+model = parse_tir("src/parameters/Dynamics.tir")
 # model = parse_tir("src/parameters/FSAE_Defaults.tir")
 
 model["LMUV"] = 1
 data = Dict{String, Any}("vcx" => 1, "vc" => 1)
 
+fz = 123:1:1041
 alpha = -deg2rad(24):deg2rad(0.01):deg2rad(24)
-kappa = -1.2:0.01:1.2
-gamma = -deg2rad(5):deg2rad(2):deg2rad(5)
+kappa = -1.2:0.001:1.2
+# gamma = -deg2rad(5):deg2rad(2):deg2rad(5)
+gamma = [0]
+
+#dumb stuff 2
+out = []
+for z in fz
+    for g in gamma
+        local fx0 = []
+        for k in kappa
+            MF62.base(model, data, 1, 1, z, 0, k, g, 0)
+            push!(fx0, MF62.fx0(model, data, z, k, g))
+        end
+        push!(out, maximum(fx0))
+    end
+end
+plot(fz, out)
 
 # dumb stuff
 # fz_sweep = 1:1:1200
@@ -108,24 +124,25 @@ gamma = -deg2rad(5):deg2rad(2):deg2rad(5)
 # end
 # plot(alpha, out, label=["-pi/4" "-pi/8" 0 "pi/8" "pi/4"])
 
-out = []
-for g in gamma
-    local fy0 = []
-    for a in alpha
-        MF62.base(model, data, 1, 1, 800, a, 0, g, 0)
-        push!(fy0, MF62.fy0(model, data, 800.0, a, g))
-    end
-    push!(out, fy0)
-end
-plot(alpha, out, label=["-pi/4" "-pi/8" 0 "pi/8" "pi/4"])
+# out = []
+# for g in gamma
+#     local fy0 = []
+#     for a in alpha
+#         MF62.base(model, data, 1, 1, 800, a, 0, g, 0)
+#         push!(fy0, MF62.fy0(model, data, 800.0, a, g))
+#     end
+#     push!(out, fy0)
+# end
+# plot(alpha, out, label=["-pi/4" "-pi/8" 0 "pi/8" "pi/4"])
 
 # out = []
 # for g in gamma
 #     local fx0 = []
 #     for k in kappa
-#         MF62.base(model, data, 1, 1, 800, 0, k, g, 0)
-#         push!(fx0, MF62.fx0(model, data, 800.0, k, g))
+#         MF62.base(model, data, 1, 1, fz, 0, k, g, 0)
+#         push!(fx0, MF62.fx0(model, data, fz, k, g))
 #     end
 #     push!(out, fx0)
+#     print(maximum(fx0))
 # end
 # plot(kappa, out, label=["-pi/4" "-pi/8" 0 "pi/8" "pi/4"])
