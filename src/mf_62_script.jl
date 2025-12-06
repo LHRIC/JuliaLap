@@ -3,7 +3,7 @@ include("tires/parse_tire.jl")
 using Plots
 plotlyjs()
 
-model = parse_tir("src/parameters/FSAE_Defaults.tir")
+model = parse_tir("src/parameters/FSAE_Defaults.tir");
 model["LMUV"] = 1
 alpha = -deg2rad(12):deg2rad(0.01):deg2rad(12)
 kappa = -1.2:0.01:1.2
