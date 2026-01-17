@@ -1,12 +1,12 @@
-include("tires/mf_62_cleaned.jl")
+include("tires/mf_62_sym.jl")
 include("tires/parse_tire.jl")
 using Plots
 using ModelingToolkit
 plotlyjs()
 
 # model = parse_tir("src/parameters/Round_8_Hoosier_R25B_16x7p5_10_on_7in_12psi_PAC02_UM2.tir")
-# model = parse_tir("src/parameters/R20_16x7p5_10_on_7in_12psi_PAC2002.tir")
-model = parse_tir("src/parameters/FSAE_Defaults.tir")
+model = parse_tir("src/parameters/R20_16x7p5_10_on_7in_12psi_PAC2002.tir")
+# model = parse_tir("src/parameters/FSAE_Defaults.tir")
 # model = parse_tir("src/parameters/R20_16x7p5_10_on_7in_12psi_PAC2002.tir")
 # model = parse_tir("src/parameters/Dynamics copy.tir")
 
@@ -31,7 +31,6 @@ fz = 2092.99
 p = model
 # MF62.base(1, 1, fz, 0, k, g, 0)
 # lfz0, p_i, p_io, lmux, lmuy, lmuv, r0, g, vcx, vc, fz0 = MF62.params
-# fun = MF62.fx0
 # @mtkcompile sys = OptimizationSystem(MF62.fx0, [MF62.params...], [])
 
 param_map = [
@@ -208,4 +207,7 @@ param_map = [
     MF62.ssz4 => p["SSZ4"],
 
 ]
-# vaMF62.l = substitute(fun, params_dict)
+fx0_fun = substitute(MF62.k_xk, param_map)
+fx0_build = eval(build_function(fx0_fun, MF62.fz, MF62.gamma, MF62.kappa, MF62.vx, MF62.vy))
+fz_in = range(0,2000,100)
+plot(fz_in,fx0_build.(fz_in,0,1.2,1,1))

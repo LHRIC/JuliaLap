@@ -219,6 +219,7 @@ gam_str = sin(gamma)                                # (4.E4)
 epsilon = 0                                         # TODO
 vcp = vc - epsilon                                  # (4.E6a)
 cosalpha_p = vcx/vcp                                # (4.E6) TODO: above
+# cosalpha_p = cos(alpha)
 zeta = 1                                            # TODO: check i part
 vs = sqrt(vx^2+vy^2)
 lmux_str = lmux/(1+lmuv*vs/v0)                      # (4.E7)
@@ -354,25 +355,27 @@ t = d_t*cos(c_t*atan(b_alpha_t - e_t*(b_alpha_t - atan(b_alpha_t)))) * cosalpha_
 m_zp = -t * fy_p
 m_z = m_zp + m_zr + s * f_x
 
-constraints = [
-    c_x ≳ 0
-    d_x ≳ 0
-    e_x ≲ 1
+ϵ_c = 1e-8
 
-    c_y ≳ 0
+constraints = [
+    c_x ≳ 0 + ϵ_c
+    d_x ≳ 0 + ϵ_c
+    e_x ≲ 1 
+
+    c_y ≳ 0 + ϵ_c
     e_y ≲ 1
 
-    b_t ≳ 0
-    e_t ≲ 1
-    c_t ≳ 0
+    b_t ≳ 0 + ϵ_c
+    e_t ≲ 1 
+    c_t ≳ 0 + ϵ_c
 
     e_xa ≲ 1
-    b_xa ≳ 0
-    g_xa ≳ 0
+    b_xa ≳ 0 + ϵ_c
+    g_xa ≳ 0 + ϵ_c
     
     e_yk ≲ 1
-    b_yk ≳ 0
-    g_yk ≳ 0
+    b_yk ≳ 0 + ϵ_c
+    g_yk ≳ 0 + ϵ_c
 ]
 
 end
