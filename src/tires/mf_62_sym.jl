@@ -6,7 +6,6 @@ using ModelingToolkit
 
 params = @parameters begin
     lfz0                              
-    p_i
     p_io                              
     lmux                                
     lmuy                              
@@ -194,6 +193,7 @@ params = @parameters begin
 end
 
 indep_vars = @variables begin
+    p_i
     fz
     kappa
     gamma
