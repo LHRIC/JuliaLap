@@ -1,5 +1,5 @@
 include("tires/mf_62_sym.jl")
-include("tires/parse_tire.jl")
+include("tires/parse_tir.jl")
 using Plots
 using ModelingToolkit
 plotlyjs()

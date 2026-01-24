@@ -126,6 +126,7 @@ LXAL                     =  1                       $Scale factor of Fx vertical
 LGAX                     =  1                       $Scale factor of camber for Fx
 LCY                      =  1                       $Scale factor of Fy shape factor
 LMUY                     =  1                       $Scale factor of Fy peak friction coefficient
+LMUV                     =  1
 LEY                      =  1                       $Scale factor of Fy curvature factor
 LKY                      =  1                       $Scale factor of Fy cornering stiffness
 LHY                      =  1                       $Scale factor of Fy horizontal shift

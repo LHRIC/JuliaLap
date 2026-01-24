@@ -1,4 +1,3 @@
-
 module MF62
 using ModelingToolkit
 # using Symbolics
@@ -357,6 +356,14 @@ m_z = m_zp + m_zr + s * f_x
 
 ϵ_c = 1e-8
 
+output_vec = [
+    f_x,
+    f_y,
+    m_x,
+    m_y,
+    m_z
+]
+
 constraints = [
     c_x ≳ 0 + ϵ_c
     d_x ≳ 0 + ϵ_c
@@ -379,4 +386,3 @@ constraints = [
 ]
 
 end
-

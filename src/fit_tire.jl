@@ -5,16 +5,15 @@ df, dict = parse_ttc("src/parameters/B2356raw2.dat")
 
 initial_params = parse_tir("src/parameters/R20_16x7p5_10_on_7in_12psi_PAC2002.tir")
 
-param_map = [
-    MF62.lfz0 => p["LFZO"],
-    MF62.fz0  => p["FNOMIN"],
-    MF62.lmux => p["LMUX"],
-    MF62.lmuy => p["LMUY"],
-    MF62.lmuv => p["LMUV"],
+fixed_param_map = [
+    
     MF62.r0   => p["UNLOADED_RADIUS"],
     MF62.g    => p["GRAVITY"],
     MF62.vcx  => 1,
-    MF62.vc   => 1,
+    MF62.vc   => 1
+]
+
+param_map = [
 
     MF62.pcx1 => p["PCX1"],
     MF62.pdx1 => p["PDX1"],
@@ -35,13 +34,6 @@ param_map = [
     MF62.ppx2 => p["PPX2"],
     MF62.ppx3 => p["PPX3"],
     MF62.ppx4 => p["PPX4"],
-
-    MF62.lcx => p["LCX"],
-    MF62.lhx => p["LHX"],
-    MF62.lex => p["LEX"],
-    MF62.lvx => p["LVX"],
-
-    MF62.friction_scaling_x => p["friction_scaling_x"],
 
     MF62.pcy1 => p["PCY1"],
     MF62.pdy1 => p["PDY1"],
@@ -70,13 +62,6 @@ param_map = [
     MF62.ppy3 => p["PPY3"],
     MF62.ppy4 => p["PPY4"],
     MF62.ppy5 => p["PPY5"],
-
-    MF62.lcy => p["LCY"],
-    MF62.lhy => p["LHY"],
-    MF62.ley => p["LEY"],
-    MF62.lvy => p["LVY"],
-    MF62.lky => p["LKY"],
-    MF62.lkyg => p["LKYC"],
 
     MF62.phy3 => 0.144919,
 
@@ -110,11 +95,6 @@ param_map = [
     MF62.qez4 => p["QEZ4"],
     MF62.qez5 => p["QEZ5"],
 
-    MF62.lky => p["LKY"],
-    MF62.ltr => p["LTR"],
-    MF62.lres => p["LRES"],
-    MF62.lkzc => p["LKZC"],   
-
     MF62.rbx1 => p["RBX1"],
     MF62.rbx2 => p["RBX2"],
     MF62.rbx3 => p["RBX3"],
@@ -122,8 +102,6 @@ param_map = [
     MF62.rex1 => p["REX1"],
     MF62.rex2 => p["REX2"],
     MF62.rhx1 => p["RHX1"],
-
-    MF62.lxal => p["LXAL"],
 
     MF62.rby1 => p["RBY1"],
     MF62.rby2 => p["RBY2"],
@@ -141,9 +119,6 @@ param_map = [
     MF62.rvy5 => p["RVY5"],
     MF62.rvy6 => p["RVY6"],
 
-    MF62.lyk => p["LYKA"],
-    MF62.lvyk => p["LVYKA"],
-
     MF62.qsx1 => p["QSX1"],
     MF62.qsx2 => p["QSX2"],
     MF62.qsx3 => p["QSX3"],
@@ -157,9 +132,6 @@ param_map = [
     MF62.qsx11 => p["QSX11"],
     MF62.ppmx1 => p["PPMX1"],
 
-    MF62.lvmx => p["LVMX"],
-    MF62.lmx => p["LMX"],
-
     MF62.qsy1 => p["QSY1"],
     MF62.qsy2 => p["QSY2"],
     MF62.qsy3 => p["QSY3"],
@@ -169,11 +141,47 @@ param_map = [
     MF62.qsy7 => p["QSY7"],
     MF62.qsy8 => p["QSY8"],
 
-    MF62.lmy => p["LMY"],
-
     MF62.ssz1 => p["SSZ1"],
     MF62.ssz2 => p["SSZ2"],
     MF62.ssz3 => p["SSZ3"],
     MF62.ssz4 => p["SSZ4"],
+]
+
+scaling_map = [
+
+    MF62.lfz0 => p["LFZO"],
+    MF62.lfz0 => p["LFZO"],
+    MF62.lmuy => p["LMUY"],
+    MF62.lmux => p["LMUX"],
+
+    MF62.lcx => p["LCX"],
+    MF62.lhx => p["LHX"],
+    MF62.lex => p["LEX"],
+    MF62.lvx => p["LVX"],
+
+    MF62.friction_scaling_x => p["friction_scaling_x"],
+
+    MF62.lcy => p["LCY"],
+    MF62.lhy => p["LHY"],
+    MF62.ley => p["LEY"],
+    MF62.lvy => p["LVY"],
+    MF62.lky => p["LKY"],
+    MF62.lkyg => p["LKYC"],
+
+    MF62.lky => p["LKY"],
+    MF62.ltr => p["LTR"],
+    MF62.lres => p["LRES"],
+    MF62.lkzc => p["LKZC"],
+    
+    MF62.lxal => p["LXAL"],
+
+    MF62.lyk => p["LYKA"],
+    MF62.lvyk => p["LVYKA"],
+
+    MF62.lvmx => p["LVMX"],
+    MF62.lmx => p["LMX"],
+    MF62.lmy => p["LMY"],
 
 ]
+fx0_fun = substitute(MF62.k_xk, param_map)
+
