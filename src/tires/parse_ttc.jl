@@ -71,3 +71,26 @@ function parse_ttc(filepath::String, wanted_cols = ["TSTO", "RE", "P", "AMBTMP",
 
     return df, dict
 end
+
+# for a list of ttc file
+# df - a concatenated list of dataframes; added column for file ID
+# dict - fileID => metadata dictionary
+function parse_ttc_list(file_list, wanted_cols = ["TSTO", "RE", "P", "AMBTMP", 
+    "TSTC", "FY", "V", "NFX", "SA", "RST", "N", "ET", "SL", "TSTI", "MX", 
+    "FZ", "RUN", "RL", "SR", "MZ", "NFY", "FX", "IA"])
+
+    df = DataFrame()
+    dict = Dict{String, Dict}()
+
+    for filepath in file_list
+        temp_df, temp_dict = parse_ttc(filepath, wanted_cols)
+
+        id = temp_dict["ID"]
+
+        temp_df[!, :ID] .= id
+        append!(df, temp_df)
+        dict[id] = temp_dict
+    end
+
+    return df, dict
+end
