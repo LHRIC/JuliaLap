@@ -3,7 +3,7 @@ using ModelingToolkit
 # using Symbolics
 # Magic Formula 6.2 Tire Model (Pacejka, Tire and Vehicle Dynamics, 3rd edition, Ch. 4.3.2)
 
-params = @parameters begin
+params = @variables begin
     lfz0                              
     p_io                              
     lmux                                
@@ -11,8 +11,6 @@ params = @parameters begin
     lmuv                           
     r0                        
     g                                
-    vcx
-    vc
     fz0
 
     pcx1
@@ -77,6 +75,7 @@ params = @parameters begin
     lvy
     lky
     lkyg
+
     friction_scaling_y
 
     r0
@@ -191,15 +190,24 @@ params = @parameters begin
     ls
 end
 
-indep_vars = @variables begin
+indep_vars = @parameters begin
     p_i
     fz
-    kappa
     gamma
     alpha
-    vx
-    vy
+    vs
+    Ω
+    rl
 end
+
+# Pre-processing velocity calculations
+
+vc = Ω*rl
+vc_x = vc*cos(alpha)
+vc_y = vc*sin(alpha)
+
+vs_x = vs*cos(alpha)
+vs_y = vs*sin(alpha)
 
 # Compute longitudinal force (pure slip, α = 0)
 # Neglecting turn slip, and assuming small camber values (Lamba=1)
@@ -212,15 +220,15 @@ v0 = sqrt(abs(g*r0))                                # Derived reference velocity
 fz0p = lfz0 * fz0                                   # (4.E1)
 dfz = (fz - fz0p) / fz0p                            # (4.E2a)
 dpi = (p_i - p_io) / p_io                           # (4.E2b)
-alpha_str = tan(alpha) * sign(vcx)                  # (4.E3)
+alpha_str = tan(alpha) * sign(vc_x)                 # (4.E3)
 gam_str = sin(gamma)                                # (4.E4)
-# (4.E5) calculation for kappa not used
+kappa = - vs_x/abs(vc_x)                            # (4.E5)
 epsilon = 0                                         # TODO
 vcp = vc - epsilon                                  # (4.E6a)
-cosalpha_p = vcx/vcp                                # (4.E6) TODO: above
+cosalpha_p = vc_x/vcp                               # (4.E6) TODO: above
 # cosalpha_p = cos(alpha)
 zeta = 1                                            # TODO: check i part
-vs = sqrt(vx^2+vy^2)
+
 lmux_str = lmux/(1+lmuv*vs/v0)                      # (4.E7)
 lmuy_str = lmuy/(1+lmuv*vs/v0)                      # (4.E7)
 A_mu = 10                                       
@@ -338,7 +346,7 @@ m_x = r0*fz*(part_1 + part_2 + part_3)*lmx
 
 # Rolling Resistance Moment
 
-part_1 = qsy1 + qsy2*f_x/fz0 + qsy3*abs(vx/v0) + qsy4*(vx/v0)^4 + (qsy5 + qsy6*fz/fz0)*gamma^2
+part_1 = qsy1 + qsy2*f_x/fz0 + qsy3*abs(vs_x/v0) + qsy4*(vs_x/v0)^4 + (qsy5 + qsy6*fz/fz0)*gamma^2
 part_2 = (fz/fz0)^qsy7 * (p_i/p_io)^qsy8
 
 m_y = fz*r0*part_1*part_2*lmy

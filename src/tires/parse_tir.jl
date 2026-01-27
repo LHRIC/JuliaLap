@@ -12,9 +12,9 @@ function parse_tir(filepath::String)
                 value = strip(split(parts[2], "\$", limit=2)[1])
 
                 # Try to convert value to Int or Float
-                if tryparse(Int, value) !== nothing
-                    value = parse(Int, value)
-                elseif tryparse(Float64, value) !== nothing
+                # if tryparse(Int, value) !== nothing
+                #     value = parse(Int, value)
+                if tryparse(Float64, value) !== nothing
                     value = parse(Float64, value)
                 else
                     value = strip(value, [''', '"'])
@@ -34,8 +34,6 @@ function build_param_maps(parameter_dict)
     
     MF62.r0   => p["UNLOADED_RADIUS"],
     MF62.g    => p["GRAVITY"],
-    MF62.vcx  => 1,
-    MF62.vc   => 1
     ]
 
     param_map = [
@@ -186,6 +184,7 @@ function build_param_maps(parameter_dict)
     MF62.lvx => p["LVX"],
 
     MF62.friction_scaling_x => p["friction_scaling_x"],
+    MF62.friction_scaling_y => p["friction_scaling_y"],
 
     MF62.lcy => p["LCY"],
     MF62.lhy => p["LHY"],
@@ -207,6 +206,8 @@ function build_param_maps(parameter_dict)
     MF62.lvmx => p["LVMX"],
     MF62.lmx => p["LMX"],
     MF62.lmy => p["LMY"],
+
+    MF62.ls => p["LS"]
 
     ]
     return fixed_param_map, param_map, scaling_map
