@@ -2,6 +2,34 @@
 using MAT
 using CSV
 using DataFrames
+using Unitful
+using Unitful: °C
+
+function unit_from_string(u::String)
+    u = lowercase(strip(u))
+
+    return if u == "kph"
+        u"km/hr"
+    elseif u == "rpm"
+        u"1/min"
+    elseif u == "deg"
+        u"°"
+    elseif u == "deg c"
+        u"°C"
+    elseif u == "cm"
+        u"cm"
+    elseif u == "kpa"
+        u"kPa"
+    elseif u == "n"
+        u"N"
+    elseif u == "nm"
+        u"N*m"
+    elseif u == "s"
+        u"s"
+    else
+        nothing
+    end
+end
 
 # Outputs: (DataFrame df, Dict dict)
 # df - DataFrame where each column represents a value and each row represents a trial
@@ -17,7 +45,7 @@ function parse_ttc(filepath::String, wanted_cols = ["TSTO", "RE", "P", "AMBTMP",
     if (filetype == "mat")
         dict = matread(filepath)
         
-        values = []
+        values = Vector{Any}()
         for key in wanted_cols
             push!(values, vec(dict[key]))
             delete!(dict, key)
@@ -62,11 +90,19 @@ function parse_ttc(filepath::String, wanted_cols = ["TSTO", "RE", "P", "AMBTMP",
             end
         end
 
+        df = CSV.read(filepath, DataFrame; header=2, skipto=4, delim='\t')
         keys = split(keys, "\t")
         units = split(units, "\t")
-        dict["units"] = Dict(zip(keys, units))
-        
-        df = CSV.read(filepath, DataFrame; header=2, skipto=4, delim='\t')
+
+        for (col, unit_str) in zip(keys, units)
+            col_sym = Symbol(col)
+            if col_sym ∈ names(df)
+                u = unit_from_string(unit_str)
+                if u !== nothing
+                    df[!, col_sym] = df[!, col_sym] .* u
+                end
+            end
+        end
     end
 
     return df, dict
@@ -87,7 +123,7 @@ function parse_ttc_list(file_list, wanted_cols = ["TSTO", "RE", "P", "AMBTMP",
 
         id = temp_dict["ID"]
 
-        temp_df[!, :ID] .= id
+        temp_df[!, :ID] = fill(id, nrow(temp_df))
         append!(df, temp_df)
         dict[id] = temp_dict
     end
