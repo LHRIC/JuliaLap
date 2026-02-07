@@ -86,7 +86,7 @@ function build_param_maps(parameter_dict)
     MF62.ppy4 => p["PPY4"],
     MF62.ppy5 => p["PPY5"],
 
-    MF62.phy3 => 0.144919,
+    # MF62.phy3 => 0.144919,
 
     MF62.qhz1 => p["QHZ1"],
     MF62.qhz2 => p["QHZ2"],
@@ -155,14 +155,14 @@ function build_param_maps(parameter_dict)
     MF62.qsx11 => p["QSX11"],
     MF62.ppmx1 => p["PPMX1"],
 
-    MF62.qsy1 => p["QSY1"],
-    MF62.qsy2 => p["QSY2"],
-    MF62.qsy3 => p["QSY3"],
-    MF62.qsy4 => p["QSY4"],
-    MF62.qsy5 => p["QSY5"],
-    MF62.qsy6 => p["QSY6"],
-    MF62.qsy7 => p["QSY7"],
-    MF62.qsy8 => p["QSY8"],
+    # MF62.qsy1 => p["QSY1"],
+    # MF62.qsy2 => p["QSY2"],
+    # MF62.qsy3 => p["QSY3"],
+    # MF62.qsy4 => p["QSY4"],
+    # MF62.qsy5 => p["QSY5"],
+    # MF62.qsy6 => p["QSY6"],
+    # MF62.qsy7 => p["QSY7"],
+    # MF62.qsy8 => p["QSY8"],
 
     MF62.ssz1 => p["SSZ1"],
     MF62.ssz2 => p["SSZ2"],
