@@ -5,27 +5,29 @@ using DataFrames
 using Unitful
 using Unitful: °C
 
-function unit_from_string(u::String)
+function unit_from_string(u::AbstractString)
     u = lowercase(strip(u))
 
     return if u == "kph"
-        u"km/hr"
+        (1000/3600)u"m/s"
     elseif u == "rpm"
-        u"1/min"
+        (2π/60)u"rad/s"
     elseif u == "deg"
-        u"°"
+        (π/180)u"rad"
     elseif u == "deg c"
         u"°C"
     elseif u == "cm"
-        u"cm"
+        0.01u"m"
     elseif u == "kpa"
-        u"kPa"
+        1000u"Pa"
     elseif u == "n"
         u"N"
     elseif u == "nm"
         u"N*m"
     elseif u == "s"
         u"s"
+    elseif u == "kg"
+        u"kg"
     else
         nothing
     end
@@ -45,7 +47,7 @@ function parse_ttc(filepath::String, wanted_cols = ["TSTO", "RE", "P", "AMBTMP",
     if (filetype == "mat")
         dict = matread(filepath)
         
-        values = Vector{Any}()
+        values = Vector{Vector}()
         for key in wanted_cols
             push!(values, vec(dict[key]))
             delete!(dict, key)
@@ -95,11 +97,10 @@ function parse_ttc(filepath::String, wanted_cols = ["TSTO", "RE", "P", "AMBTMP",
         units = split(units, "\t")
 
         for (col, unit_str) in zip(keys, units)
-            col_sym = Symbol(col)
-            if col_sym ∈ names(df)
+            if col ∈ names(df)
                 u = unit_from_string(unit_str)
                 if u !== nothing
-                    df[!, col_sym] = df[!, col_sym] .* u
+                    df[!, col] = df[!, col] .* u
                 end
             end
         end
@@ -129,4 +130,16 @@ function parse_ttc_list(file_list, wanted_cols = ["TSTO", "RE", "P", "AMBTMP",
     end
 
     return df, dict
+end
+
+function unitful_to_float(df::DataFrame)
+    out = deepcopy(df)
+
+    for col in names(out)
+        if eltype(out[!, col]) <: Unitful.Quantity
+            out[!, col] = ustrip.(out[!, col])
+        end
+    end
+
+    return out
 end
