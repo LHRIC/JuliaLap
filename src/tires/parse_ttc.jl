@@ -17,6 +17,17 @@ end
 
 const _NOISE_FFT_WARNED = Ref(false)
 
+const _HAS_PLOTS = let
+    try
+        @eval using Plots
+        true
+    catch
+        false
+    end
+end
+
+const _NOISE_PLOT_WARNED = Ref(false)
+
 function unit_from_string(u::AbstractString)
     u = lowercase(strip(u))
 
@@ -63,6 +74,22 @@ function _numeric_signal(col)
     return out
 end
 
+function _paired_numeric_signal(xcol, ycol)
+    x = Float64[]
+    y = Float64[]
+    for (xv, yv) in zip(xcol, ycol)
+        fx = _to_float(xv)
+        fy = _to_float(yv)
+        fx === nothing && continue
+        fy === nothing && continue
+        isfinite(fx) || continue
+        isfinite(fy) || continue
+        push!(x, fx)
+        push!(y, fy)
+    end
+    return x, y
+end
+
 function _noise_flags(x::Vector{Float64};
     min_samples::Int = 128,
     max_fft_n::Int = 2048,
@@ -86,13 +113,9 @@ function _noise_flags(x::Vector{Float64};
         _NOISE_FFT_WARNED[] = true
     end
 
-    x_fft = n <= max_fft_n ? x0 : @view x0[1:max_fft_n]
-    X = _HAS_FFTW ? FFTW.fft(x_fft) : _dft(x_fft)
-    n_fft = length(X)
-    half_n = fld(n_fft, 2)
-    half_n < 2 && return nothing
-
-    power = abs2.(X[2:half_n])
+    spectrum = _fft_power_spectrum(x; max_fft_n = max_fft_n)
+    spectrum === nothing && return nothing
+    _, power = spectrum
     pmean = mean(power)
     pmean <= eps && return (true, μ, σ, 1.0, 1.0, 1.0, "very low spectral power")
 
@@ -112,6 +135,22 @@ function _noise_flags(x::Vector{Float64};
     return (looks_white_zero, μ, σ, spectral_flatness, low_freq_share, lag1, reason)
 end
 
+function _fft_power_spectrum(x::Vector{Float64}; max_fft_n::Int = 2048)
+    n = length(x)
+    n < 2 && return nothing
+
+    x0 = x .- mean(x)
+    x_fft = n <= max_fft_n ? x0 : @view x0[1:max_fft_n]
+    X = _HAS_FFTW ? FFTW.fft(x_fft) : _dft(x_fft)
+    n_fft = length(X)
+    half_n = fld(n_fft, 2)
+    half_n < 2 && return nothing
+
+    bins = collect(1:(half_n - 1))
+    power = abs2.(X[2:half_n])
+    return bins, power
+end
+
 function _dft(x::AbstractVector{<:Real})
     n = length(x)
     out = Vector{ComplexF64}(undef, n)
@@ -125,7 +164,68 @@ function _dft(x::AbstractVector{<:Real})
     return out
 end
 
-function check_noise_quality(df::DataFrame; cols = nothing, dataset_label = "dataset")
+function _sanitize_filename(s::AbstractString)
+    return replace(s, r"[^A-Za-z0-9._-]+" => "_")
+end
+
+function _save_fft_plot(x::Vector{Float64}, col_name::AbstractString, dataset_label::AbstractString;
+    fft_plot_dir::Union{Nothing, String} = nothing, max_fft_n::Int = 2048)
+
+    if !_HAS_PLOTS
+        if !_NOISE_PLOT_WARNED[]
+            println("[parse_ttc] Note: Plots.jl is not installed; skipping FFT graph output.")
+            _NOISE_PLOT_WARNED[] = true
+        end
+        return nothing
+    end
+
+    spectrum = _fft_power_spectrum(x; max_fft_n = max_fft_n)
+    spectrum === nothing && return nothing
+    bins, power = spectrum
+
+    out_dir = fft_plot_dir === nothing ? joinpath(dirname(dataset_label), "fft_noise_plots") : fft_plot_dir
+    mkpath(out_dir)
+    filename = _sanitize_filename("$(basename(dataset_label))_$(col_name)_fft.png")
+    out_path = joinpath(out_dir, filename)
+
+    p = Plots.plot(
+        bins,
+        power;
+        xlabel = "Frequency Bin",
+        ylabel = "Power",
+        yscale = :log10,
+        title = "FFT Power: $(basename(dataset_label)) :: $(col_name)",
+        legend = false,
+    )
+    Plots.savefig(p, out_path)
+    return out_path
+end
+
+function _save_all_fft_plots(df::DataFrame, cols_to_check, dataset_label::AbstractString;
+    fft_plot_dir::Union{Nothing, String} = nothing)
+
+    dataset_name = splitext(basename(dataset_label))[1]
+    base_dir = fft_plot_dir === nothing ? joinpath(dirname(dataset_label), "fft_noise_plots") : fft_plot_dir
+    out_dir = joinpath(base_dir, _sanitize_filename(dataset_name))
+    mkpath(out_dir)
+
+    saved = 0
+    for col in cols_to_check
+        col ∈ names(df) || continue
+        x = _numeric_signal(df[!, col])
+        length(x) < 2 && continue
+        _save_fft_plot(x, String(col), dataset_label; fft_plot_dir = out_dir)
+        saved += 1
+    end
+    return out_dir, saved
+end
+
+function check_noise_quality(df::DataFrame;
+    cols = nothing,
+    dataset_label = "dataset",
+    plot_bad_fft::Bool = true,
+    fft_plot_dir::Union{Nothing, String} = nothing)
+
     cols_to_check = cols === nothing ? names(df) : cols
     suspects = NamedTuple[]
 
@@ -147,17 +247,70 @@ function check_noise_quality(df::DataFrame; cols = nothing, dataset_label = "dat
             low_freq_share = low_share,
             lag1_autocorr = lag1,
             reason = reason,
+            fft_plot_path = nothing,
         ))
     end
 
     if !isempty(suspects)
+        folder_path = nothing
+        saved_plots = 0
+        if plot_bad_fft
+            folder_path, saved_plots = _save_all_fft_plots(df, cols_to_check, String(dataset_label); fft_plot_dir = fft_plot_dir)
+        end
+
         println("[parse_ttc] Warning: possible bad values in $(dataset_label):")
         for s in suspects
             println("  - $(s.col): $(s.reason) (n=$(s.n), mean=$(s.mean), std=$(s.std), flatness=$(s.spectral_flatness), low_freq_share=$(s.low_freq_share), lag1=$(s.lag1_autocorr))")
         end
+        if folder_path !== nothing
+            println("  FFT plots saved for all checked columns ($(saved_plots) files): $(folder_path)")
+        end
     end
 
     return suspects
+end
+
+function plot_all_vs_effective_time(df::DataFrame;
+    dataset_label::AbstractString = "dataset",
+    time_col::AbstractString = "ET",
+    out_dir::Union{Nothing, String} = nothing)
+
+    if !_HAS_PLOTS
+        if !_NOISE_PLOT_WARNED[]
+            println("[parse_ttc] Note: Plots.jl is not installed; skipping time-series graph output.")
+            _NOISE_PLOT_WARNED[] = true
+        end
+        return nothing
+    end
+
+    time_col ∈ names(df) || error("[parse_ttc] Missing time column: $(time_col)")
+    dataset_name = splitext(basename(dataset_label))[1]
+    base_dir = out_dir === nothing ? joinpath(dirname(dataset_label), "time_series_plots") : out_dir
+    folder = joinpath(base_dir, _sanitize_filename(dataset_name))
+    mkpath(folder)
+
+    saved = 0
+    for col in names(df)
+        col == time_col && continue
+        x, y = _paired_numeric_signal(df[!, time_col], df[!, col])
+        isempty(x) && continue
+
+        p = Plots.plot(
+            x,
+            y;
+            xlabel = String(time_col),
+            ylabel = String(col),
+            title = "$(basename(dataset_label)) :: $(col) vs $(time_col)",
+            legend = false,
+        )
+
+        filename = _sanitize_filename("$(basename(dataset_label))_$(col)_vs_$(time_col).png")
+        Plots.savefig(p, joinpath(folder, filename))
+        saved += 1
+    end
+
+    println("[parse_ttc] Time-series plots saved ($(saved) files): $(folder)")
+    return folder, saved
 end
 
 # Outputs: (DataFrame df, Dict dict)
@@ -165,7 +318,11 @@ end
 # dict - Dictionary consisting of all unused metadata
 function parse_ttc(filepath::String, wanted_cols = ["TSTO", "RE", "P", "AMBTMP", 
     "TSTC", "FY", "V", "NFX", "SA", "RST", "N", "ET", "SL", "TSTI", "MX", 
-    "FZ", "RUN", "RL", "SR", "MZ", "NFY", "FX", "IA"]; check_noise::Bool = true, noise_cols = nothing)
+    "FZ", "RUN", "RL", "SR", "MZ", "NFY", "FX", "IA"];
+    check_noise::Bool = true,
+    noise_cols = nothing,
+    plot_bad_fft::Bool = true,
+    fft_plot_dir::Union{Nothing, String} = nothing)
 
     filetype = split(filepath, ".")[lastindex(split(filepath, "."))]
     df = nothing
@@ -234,7 +391,7 @@ function parse_ttc(filepath::String, wanted_cols = ["TSTO", "RE", "P", "AMBTMP",
     end
 
     if check_noise && df !== nothing
-        check_noise_quality(df; cols = noise_cols, dataset_label = filepath)
+        check_noise_quality(df; cols = noise_cols, dataset_label = filepath, plot_bad_fft = plot_bad_fft, fft_plot_dir = fft_plot_dir)
     end
 
     return df, dict
@@ -245,13 +402,21 @@ end
 # dict - fileID => metadata dictionary
 function parse_ttc_list(file_list, wanted_cols = ["TSTO", "RE", "P", "AMBTMP", 
     "TSTC", "FY", "V", "NFX", "SA", "RST", "N", "ET", "SL", "TSTI", "MX", 
-    "FZ", "RUN", "RL", "SR", "MZ", "NFY", "FX", "IA"]; check_noise::Bool = true, noise_cols = nothing)
+    "FZ", "RUN", "RL", "SR", "MZ", "NFY", "FX", "IA"];
+    check_noise::Bool = true,
+    noise_cols = nothing,
+    plot_bad_fft::Bool = true,
+    fft_plot_dir::Union{Nothing, String} = nothing)
 
     df = DataFrame()
     dict = Dict{String, Dict}()
 
     for filepath in file_list
-        temp_df, temp_dict = parse_ttc(filepath, wanted_cols; check_noise = check_noise, noise_cols = noise_cols)
+        temp_df, temp_dict = parse_ttc(filepath, wanted_cols;
+            check_noise = check_noise,
+            noise_cols = noise_cols,
+            plot_bad_fft = plot_bad_fft,
+            fft_plot_dir = fft_plot_dir)
 
         id = temp_dict["ID"]
 
